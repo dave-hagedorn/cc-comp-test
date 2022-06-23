@@ -1,0 +1,10 @@
+build --incompatible_enable_cc_toolchain_resolution
+
+build --copt=-Wall --copt=-Wpedantic --copt=-ferror-limit=4 --cxxopt=-std=c++17
+build --host_copt=-Wall --host_copt=-Wpedantic --host_copt=-ferror-limit=4 --host_cxxopt=-std=c++17
+
+build:debug -c dbg --copt=-g --host_copt=-g --strip=never
+
+build:debug_no_opt -c dbg --copt=-g --hostcopt=-g --copt=-O0 --strip=never
+
+build:test_always --cache_test_results=false

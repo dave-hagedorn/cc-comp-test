@@ -36,19 +36,6 @@ def _runner_for_cc_static_test(ctx):
     for dep in deps:
         dep_headers.extend(dep[CcInfo].compilation_context.direct_public_headers)
 
-    #print(deps_ctx.direct_headers)
-    #print(deps_ctx.direct_private_headers)
-    #print(deps_ctx.direct_public_headers)
-    #print(deps_ctx.direct_textual_headers)
-    #print(deps_ctx.framework_includes)
-    #print(deps_ctx.headers)
-    #print(deps_ctx.includes)
-    #print(deps_ctx.local_defines)
-    #print(deps_ctx.quote_includes)
-    #print(deps_ctx.system_includes)
-    #print(deps_ctx.validation_artifacts)
-    #print(transitive_headers)
-
     feature_configuration = cc_common.configure_features(
         ctx = ctx,
         cc_toolchain = cc_toolchain,
@@ -60,8 +47,6 @@ def _runner_for_cc_static_test(ctx):
         feature_configuration = feature_configuration,
         action_name = CPP_COMPILE_ACTION_NAME,
     )
-
-    print(ctx.fragments.cpp.copts + ctx.fragments.cpp.conlyopts + ctx.fragments.cpp.cxxopts)
 
     c_compile_variables = cc_common.create_compile_variables(
         feature_configuration = feature_configuration,
@@ -92,9 +77,6 @@ def _runner_for_cc_static_test(ctx):
     #print(env)
 
     static_tester = ctx.executable._static_tester
-
-    print(dep_headers)
-    print(ctx.bin_dir.path)
 
     # Not sure if this legal or sane
     # Bazel cc_* rules generate info assuming a compile runs from the workspace root, ex:
@@ -166,10 +148,10 @@ runner_for_cc_static_test = rule(
     attrs = {
         "src": attr.label(allow_single_file = True),
         "deps": attr.label_list(providers = [CcInfo]),
+        "info_binary": attr.label(executable = True, cfg = "target", providers = [CcInfo]),
         "_cc_toolchain": attr.label(default = "@bazel_tools//tools/cpp:current_cc_toolchain"),
         "_needed_libs": attr.label_list(default = ["//lib:static_test", "//lib/private:support"], providers = [CcInfo]),
         "_static_tester": attr.label(default = "//rules/static_tester:static_tester", executable = True, cfg = "target", providers = [CcInfo]),
-        "info_binary": attr.label(executable = True, cfg = "target", providers = [CcInfo]),
         "_pretend_test_binary_template": attr.label(allow_single_file = True, default = "pretend_test_binary.sh.tpl"),
     },
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],

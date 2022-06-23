@@ -90,30 +90,23 @@ public:
 
         comp_result.compile_output = exec.run();
 
-        log("comp output",
-            "stdout",
-            comp_result.compile_output.stdout,
-            "stderr",
-            comp_result.compile_output.stderr);
+        log("comp output", "stdout", comp_result.compile_output.stdout,
+            "stderr", comp_result.compile_output.stderr);
 
         if (bfs::is_regular(output)) {
-            bfs::permissions(
-                output,
-                bfs::perms::owner_exe | bfs::perms::owner_read
-                    | bfs::perms::owner_write
-            );
+            bfs::permissions(output, bfs::perms::owner_exe
+                                         | bfs::perms::owner_read
+                                         | bfs::perms::owner_write);
         }
 
         comp_result.input = input;
 
         comp_result.diagnostics
-            = rv::concat(
-                  comp_result.compile_output.stderr,
-                  comp_result.compile_output.stdout
-              )
+            = rv::concat(comp_result.compile_output.stderr,
+                         comp_result.compile_output.stdout)
               | rv::transform(&compiler_diagnostic::from_string)
-              | rv::remove_if([](const auto &diag) { return !diag.has_value(); }
-              )
+              | rv::remove_if(
+                  [](const auto &diag) { return !diag.has_value(); })
               | rv::transform([](const auto &diag) { return *diag; })
               | r::to<std::vector>();
 
@@ -130,10 +123,9 @@ public:
     }
 
 private:
-    std::vector<std::string> _rewrite_args(
-        const std::vector<std::string> &args, const bfs::path &input,
-        const bfs::path &output
-    ) {
+    std::vector<std::string> _rewrite_args(const std::vector<std::string> &args,
+                                           const bfs::path &input,
+                                           const bfs::path &output) {
         auto rewritten = args;
         //= _args | rv::remove_if([](const auto &e) { return e == "-c"; })
         //  | r::to<std::vector>();
@@ -190,10 +182,8 @@ template <>
 struct fmt::formatter<dhagedorn::static_tester::priv::compiler_diagnostic>
     : fmt::formatter<std::string> {
     template <typename FormatContext>
-    auto format(
-        const dhagedorn::static_tester::priv::compiler_diagnostic &p,
-        FormatContext &ctx
-    ) const {
+    auto format(const dhagedorn::static_tester::priv::compiler_diagnostic &p,
+                FormatContext &ctx) const {
         // ctx.out() is an output iterator to write to.
         return format_to(ctx.out(), "{}", p.original);
     }

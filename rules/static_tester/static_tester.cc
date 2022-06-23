@@ -54,13 +54,11 @@ struct args {
     }
 };
 
-auto validate_opts(
-    const po::variables_map &result, std::vector<std::string> positional
-) {
+auto validate_opts(const po::variables_map &result,
+                   std::vector<std::string> positional) {
     auto error = [](auto msg) {
         fmt::print(
-            stderr, fmt::emphasis::bold | fg(fmt::color::red), "{}\n", msg
-        );
+            stderr, fmt::emphasis::bold | fg(fmt::color::red), "{}\n", msg);
     };
 
     auto passed = true;
@@ -72,25 +70,19 @@ auto validate_opts(
         }
     };
 
-    check(
-        result.count("info") == 1,
-        "-i, --info expected - info binary to list test cases"
-    );
+    check(result.count("info") == 1,
+          "-i, --info expected - info binary to list test cases");
 
-    check(
-        result.count("source") == 1,
-        "-s,--source expected - source file to build under test"
-    );
+    check(result.count("source") == 1,
+          "-s,--source expected - source file to build under test");
 
     check(
         result.count("compiler") == 1,
-        "-c,-compiler expected - path to compiler used to execute build tests"
-    );
+        "-c,-compiler expected - path to compiler used to execute build tests");
 
-    check(
-        positional.size() > 0,
-        "additional positional arguments expected - arguments to compiler (-c)"
-    );
+    check(positional.size() > 0,
+          "additional positional arguments expected - "
+          "arguments to compiler (-c)");
 
     return passed;
 }
@@ -179,8 +171,7 @@ auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
         tc.file,
         tc.line,
         tc.test_suite() == "" ? ""s : tc.test_suite() + "::",
-        tc.symbol
-    );
+        tc.symbol);
 
     c.append(runner);
 
@@ -259,8 +250,11 @@ auto write_junit(const args &args, const std::vector<test_suite_run> &runs) {
 
 int main(int argc, char **argv) {
     dhagedorn::static_tester::priv::log(
-        "env", "bin", argv[0], "pwd", boost::filesystem::current_path().native()
-    );
+        "env",
+        "bin",
+        argv[0],
+        "pwd",
+        boost::filesystem::current_path().native());
 
     auto args = dhagedorn::static_tester::priv::parse_opts(argc, argv);
 

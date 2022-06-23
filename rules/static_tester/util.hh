@@ -7,16 +7,14 @@
 
 namespace dhagedorn::static_tester::priv {
 
-template <typename D>
-inline auto join(D &&d) {
+template <typename D> inline auto join(D &&d) {
     return ranges::views::join(std::forward<D>(d)) | ranges::to<std::string>();
 }
 
 struct then_path {
     const bool take;
 
-    template <typename F>
-    auto then(F &&f) -> std::optional<decltype(f())> {
+    template <typename F> auto then(F &&f) -> std::optional<decltype(f())> {
         if (take) {
             return f();
         }
@@ -42,8 +40,7 @@ inline bool operator&&(T &&t, std::initializer_list<U> u) {
     return false;
 }
 
-template <typename FCT>
-struct defer {
+template <typename FCT> struct defer {
     defer(FCT &&f)
         : _f{std::move(f)} {}
     ~defer() { _f(); }

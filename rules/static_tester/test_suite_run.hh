@@ -27,8 +27,7 @@ struct test_suite_run {
 
     auto duration() const {
         return r::accumulate(
-            case_runs | rv::transform([](auto &r) { return r.duration; }), 0ms
-        );
+            case_runs | rv::transform([](auto &r) { return r.duration; }), 0ms);
     }
 };
 

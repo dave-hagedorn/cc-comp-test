@@ -66,8 +66,7 @@ public:
     }
 
 private:
-    template <typename T>
-    auto _sec(T &&val) {
+    template <typename T> auto _sec(T &&val) {
         return 1.0f
                * std::chrono::duration_cast<std::chrono::milliseconds>(val)
                      .count()
@@ -80,9 +79,8 @@ private:
         p.PushAttribute("name", run.test_suite.name.c_str());
         p.PushAttribute("tests", run.test_suite.test_cases.size());
         p.PushAttribute("failures", run.count(test_case_result::compiled));
-        p.PushAttribute(
-            "errors", run.count(test_case_result::other_compile_failure)
-        );
+        p.PushAttribute("errors",
+                        run.count(test_case_result::other_compile_failure));
         p.PushAttribute("time", _sec(run.duration()));
 
         for (auto &tc : run.case_runs) {
@@ -96,10 +94,9 @@ private:
         p.OpenElement("testcase");
         p.PushAttribute("classname", run.tc.object.c_str());
         p.PushAttribute("name", run.tc.verb.c_str());
-        p.PushAttribute(
-            "status",
-            run.result() == test_case_result::skipped ? "notrun" : "run"
-        );
+        p.PushAttribute("status",
+                        run.result() == test_case_result::skipped ? "notrun"
+                                                                  : "run");
 
         p.PushAttribute("duration", _sec(run.duration));
         p.PushAttribute("time", _sec(run.duration));
@@ -110,10 +107,8 @@ private:
                 "message",
                 fmt::format(
                     R"(compile error that was not a static_assert(..., "{}") - see <system-out>)",
-                    run.tc.expected_assert_message
-                )
-                    .c_str()
-            );
+                    run.tc.expected_assert_message)
+                    .c_str());
             p.CloseElement();
         } else if (run.result() == test_case_result::compiled) {
             p.OpenElement("failure");
@@ -121,10 +116,8 @@ private:
                 "message",
                 fmt::format(
                     R"(code compiled - expected static_assert(..., "{}") - see <system-out>)",
-                    run.tc.expected_assert_message
-                )
-                    .c_str()
-            );
+                    run.tc.expected_assert_message)
+                    .c_str());
             p.CloseElement();
         }
 
@@ -133,25 +126,20 @@ private:
                     test_case_result::compiled,
                     test_case_result::other_compile_failure,
                 },
-                run.result()
-            )) {
+                run.result())) {
 
             p.OpenElement("system-out");
             log("out", "output", run.compiler_output->compile_output.stdout);
-            p.PushText(
-                (run.compiler_output->compile_output.stdout | join('\n'))
-                    .c_str(),
-                true
-            );
+            p.PushText((run.compiler_output->compile_output.stdout | join('\n'))
+                           .c_str(),
+                       true);
             p.CloseElement();
 
             p.OpenElement("system-err");
             log("out", "error", run.compiler_output->compile_output.stderr);
-            p.PushText(
-                (run.compiler_output->compile_output.stderr | join('\n'))
-                    .c_str(),
-                true
-            );
+            p.PushText((run.compiler_output->compile_output.stderr | join('\n'))
+                           .c_str(),
+                       true);
             p.CloseElement();
         }
 
