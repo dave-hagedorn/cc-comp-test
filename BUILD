@@ -9,3 +9,13 @@ refresh_compile_commands(
         "//rules/static_tester:static_tester": "",
     },
 )
+
+refresh_compile_commands(
+    name = "compdb_codechecker",
+    exclude_external_sources = True,
+    exclude_generated_sources = True,
+    exclude_headers = "all",
+    targets = {
+        "//rules/static_tester:static_tester": "",
+    },
+)
