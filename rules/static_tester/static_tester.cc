@@ -155,7 +155,7 @@ auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
             static constexpr std::string_view verb = "{}";
             static constexpr std::string_view expected_static_assert = "{}";
             static constexpr std::string_view file = "{}";
-            static constexpr auto line = {};
+            static constexpr unsigned line = {};
         }};
 
         int main() {{

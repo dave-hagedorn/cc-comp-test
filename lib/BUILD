@@ -3,9 +3,6 @@ cc_library(
     hdrs = [
         "static_test.hh",
     ],
-    copts = [
-        "--std=c++14",
-    ],
     include_prefix = "static_test",
     visibility = ["//visibility:public"],
 )

@@ -1,0 +1,58 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.209.6/containers/docker-existing-dockerfile
+{
+    "name": "Existing Dockerfile",
+    // Sets the run context to one level up instead of the .devcontainer folder.
+    "context": "..",
+    // Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
+    "dockerFile": "../Dockerfile",
+    "runArgs": [
+        "--cap-add=SYS_PTRACE",
+        "--security-opt",
+        "seccomp=unconfined"
+    ],
+    // Set *default* container specific settings.json values on container create.
+    "settings": {
+        "C_Cpp.clang_format_path": "${workspaceFolder}/bazel-pubsub++/external/clang/clang_dist/bin/clang-format",
+        "editor.formatOnPaste": true,
+        "editor.formatOnSave": true,
+        //"lldb.library": "${workspaceFolder}/external/clang/clang_dist/lib/liblldb.so",
+    },
+    // Add the IDs of extensions you want installed when the container is created.
+    "extensions": [
+        "BazelBuild.vscode-bazel",
+        "jeff-hykin.better-cpp-syntax",
+        "vadimcn.vscode-lldb",
+        "ccls-project.ccls",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-python.python",
+        "kevinkyang.auto-comment-blocks"
+    ],
+    // Use 'forwardPorts' to make a list of ports inside the container available locally.
+    // "forwardPorts": [],
+    // Uncomment the next line to run commands after the container is created - for example installing curl.
+    // "postCreateCommand": "apt-get update && apt-get install -y curl",
+    "postStartCommand": "$HOME/bin/post-start.sh",
+    // Uncomment when using a ptrace-based debugger like C++, Go, and Rust
+    // "runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
+    // Uncomment to use the Docker CLI from inside the container. See https://aka.ms/vscode-remote/samples/docker-from-docker.
+    "mounts": [
+        // Host's home, to source .zshrc, .bashrc, etc - make remote shell cozy
+        "source=${localEnv:HOME},target=/home/host,type=bind",
+        // Persist any tool configs
+        "source=devcontainer-config,target=/home/dev/.config,type=volume",
+        // Persist global git config
+        "source=${localEnv:HOME}/.gitconfig,target=/home/dev/.gitconfig,type=bind",
+        "source=${localEnv:HOME}/.zhistory,target=/home/dev/.zhistory,type=bind",
+        "source=${localEnv:HOME}/.bash_history,target=/home/dev/.bash_history,type=bind",
+        // Persist any caches - Bazel workspce and repository roots go here
+        "source=devcontainer-cache,target=/home/dev/.cache,type=volume",
+        // vscode extension install locations - saves reinstall on container rebuild
+        "source=devcontainer-exteions,target=/home/dev/.vscode-server/extensions,type=volume",
+        "source=devcontainer-exteions-insiders,target=/home/dev/.vscode-server-insiders/extensions,type=volume",
+    ],
+    //"workspaceMount": "source=/home/dave/git/,target=/workspaces,type=bind,consistency=cached",
+    //"workspaceFolder": "/workspaces",
+    // Uncomment to connect as a non-root user if you've added one. See https://aka.ms/vscode-remote/containers/non-root.
+    "remoteUser": "dev"
+}

@@ -1,7 +1,5 @@
-# c.f. https://github.com/bazelbuild/rules_cc/blob/main/examples/my_c_compile/my_c_compile.bzl
-# see also https://fossies.org/linux/envoy/bazel/pch.bzl for deps usage - how to get include dirs for deps
-
-"""Example showing how to create a rule that just compiles C sources."""
+# see: https://github.com/bazelbuild/rules_cc/blob/main/examples/my_c_compile/my_c_compile.bzl
+# see also: https://fossies.org/linux/envoy/bazel/pch.bzl for deps usage - how to get include dirs for deps
 
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("@rules_cc//cc:action_names.bzl", "CPP_COMPILE_ACTION_NAME")
@@ -9,76 +7,10 @@ load("@rules_cc//cc:action_names.bzl", "CPP_COMPILE_ACTION_NAME")
 MyCCompileInfo = provider(doc = "", fields = ["object"])
 
 DISABLED_FEATURES = [
-    "module_maps",  # # copybara-comment-this-out-please
+    "module_maps",
 ]
 
-def _runner_for_cc_static_test(ctx):
-    cc_toolchain = find_cpp_toolchain(ctx)
-
-    source_file = ctx.file.src
-    deps = ctx.attr.deps + ctx.attr._needed_libs
-    output_file = ctx.actions.declare_file(ctx.label.name + ".sh")
-    static_tester = ctx.attr._static_tester
-    pretend_test_binary_template = ctx.file._pretend_test_binary_template
-    info_binary = ctx.attr.info_binary.files_to_run.executable
-
-    merged_cc_info_deps = cc_common.merge_cc_infos(
-        cc_infos = [dep[CcInfo] for dep in deps],
-    )
-
-    merged_compilation_context_deps = cc_common.merge_compilation_contexts(
-        compilation_contexts = [dep[CcInfo].compilation_context for dep in deps],
-    )
-
-    deps_ctx = merged_cc_info_deps.compilation_context
-
-    dep_headers = []
-    for dep in deps:
-        dep_headers.extend(dep[CcInfo].compilation_context.direct_public_headers)
-
-    feature_configuration = cc_common.configure_features(
-        ctx = ctx,
-        cc_toolchain = cc_toolchain,
-        requested_features = ctx.features,
-        unsupported_features = DISABLED_FEATURES + ctx.disabled_features,
-    )
-
-    c_compiler_path = cc_common.get_tool_for_action(
-        feature_configuration = feature_configuration,
-        action_name = CPP_COMPILE_ACTION_NAME,
-    )
-
-    c_compile_variables = cc_common.create_compile_variables(
-        feature_configuration = feature_configuration,
-        cc_toolchain = cc_toolchain,
-        user_compile_flags = ctx.fragments.cpp.copts + ctx.fragments.cpp.conlyopts + ctx.fragments.cpp.cxxopts,
-        source_file = source_file.path,
-        output_file = "dummy_output.o",
-        include_directories = deps_ctx.includes,
-        quote_include_directories = deps_ctx.quote_includes,
-        system_include_directories = deps_ctx.system_includes,
-        framework_include_directories = deps_ctx.framework_includes,
-    )
-
-    command_line = cc_common.get_memory_inefficient_command_line(
-        feature_configuration = feature_configuration,
-        action_name = CPP_COMPILE_ACTION_NAME,
-        variables = c_compile_variables,
-    )
-
-    #print(command_line)
-
-    env = cc_common.get_environment_variables(
-        feature_configuration = feature_configuration,
-        action_name = CPP_COMPILE_ACTION_NAME,
-        variables = c_compile_variables,
-    )
-
-    #print(env)
-
-    static_tester = ctx.executable._static_tester
-
-    # Not sure if this legal or sane
+def _make_includes_rel_to_rundir(ctx, command_line):
     # Bazel cc_* rules generate info assuming a compile runs from the workspace root, ex:
     # /home/<you>/.cache/bazel/_bazel_<you>/<sha256_of_workspace_folder>/execroot/__main__
     # Running any Bazel command with -s shows it invokes actions by first cd'ing into this dir
@@ -107,27 +39,101 @@ def _runner_for_cc_static_test(ctx):
     # This is less desirable as doing the compilation in the test binary can take advantage of test sharding to distribute the test compiles of the different test cases
     # across many processes or even workers in the case of remote execution
 
-    patched_command_line = [arg.replace(ctx.bin_dir.path + "/", "") for arg in command_line]
+    return [arg.replace(ctx.bin_dir.path + "/", "") for arg in command_line]
 
-    print(dir(info_binary))
+def _cc_info(ctx, cc_source_file, cc_deps):
+    cc_toolchain = find_cpp_toolchain(ctx)
+    source_file = ctx.file.src
+
+    merged_cc_info_deps = cc_common.merge_cc_infos(
+        cc_infos = [dep[CcInfo] for dep in cc_deps],
+    )
+
+    merged_compilation_context_deps = cc_common.merge_compilation_contexts(
+        compilation_contexts = [dep[CcInfo].compilation_context for dep in cc_deps],
+    )
+
+    deps_ctx = merged_cc_info_deps.compilation_context
+
+    feature_configuration = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = cc_toolchain,
+        requested_features = ctx.features,
+        unsupported_features = DISABLED_FEATURES + ctx.disabled_features,
+    )
+
+    c_compiler_path = cc_common.get_tool_for_action(
+        feature_configuration = feature_configuration,
+        action_name = CPP_COMPILE_ACTION_NAME,
+    )
+
+    c_compile_variables = cc_common.create_compile_variables(
+        feature_configuration = feature_configuration,
+        cc_toolchain = cc_toolchain,
+        user_compile_flags = ctx.fragments.cpp.copts + ctx.fragments.cpp.cxxopts,
+        source_file = cc_source_file.path,
+        output_file = "dummy_output.o",
+        include_directories = deps_ctx.includes,
+        quote_include_directories = deps_ctx.quote_includes,
+        system_include_directories = deps_ctx.system_includes,
+        framework_include_directories = deps_ctx.framework_includes,
+    )
+
+    command_line = cc_common.get_memory_inefficient_command_line(
+        feature_configuration = feature_configuration,
+        action_name = CPP_COMPILE_ACTION_NAME,
+        variables = c_compile_variables,
+    )
+
+    #print(command_line)
+
+    env = cc_common.get_environment_variables(
+        feature_configuration = feature_configuration,
+        action_name = CPP_COMPILE_ACTION_NAME,
+        variables = c_compile_variables,
+    )
+
+    return struct(
+        compiler_path = c_compiler_path,
+        command_line = _make_includes_rel_to_rundir(ctx, command_line),
+        env = env,
+        files = cc_toolchain.all_files.to_list(),
+    )
+
+def _runner_for_cc_static_test(ctx):
+    source_file = ctx.file.src
+
+    output_file = ctx.actions.declare_file(ctx.label.name + ".sh")
+    static_tester = ctx.attr._static_tester
+    pretend_test_binary_template = ctx.file._pretend_test_binary_template
+    info_binary = ctx.attr.info_binary.files_to_run.executable
+    static_tester = ctx.executable._static_tester
+    cc_source_file = ctx.file.src
+    cc_deps = ctx.attr.deps + ctx.attr._needed_libs
+
+    cc_info = _cc_info(ctx, cc_source_file = cc_source_file, cc_deps = cc_deps)
 
     # See https://bazel.build/reference/test-encyclopedia#test-sharding
     # Can shard runs at runtime - threading
     ctx.actions.expand_template(
         template = pretend_test_binary_template,
         substitutions = {
-            # https://bazel.build/rules/rules#runfiles_location
+            # need to use short_path to get path relative to runfiles location - see: https://bazel.build/rules/rules#runfiles_location
             "{STATIC_TESTER}": static_tester.short_path,
             "{INFO_BINARY}": info_binary.short_path,
-            "{COMPILER}": c_compiler_path,
+            "{COMPILER}": cc_info.compiler_path,
             "{SOURCE_FILE}": source_file.short_path,
-            "{ARGS}": " ".join(patched_command_line),
+            "{ARGS}": " ".join(cc_info.command_line),
         },
         output = output_file,
         is_executable = True,
     )
 
-    files = dep_headers + cc_toolchain.all_files.to_list() + [static_tester, source_file, info_binary]
+    dep_headers = []
+    for dep in cc_deps:
+        dep_headers.extend(dep[CcInfo].compilation_context.direct_public_headers)
+
+    files = dep_headers + cc_info.files + [static_tester, source_file, info_binary]
 
     runfiles = ctx.runfiles(
         files = files,
@@ -139,7 +145,6 @@ def _runner_for_cc_static_test(ctx):
         DefaultInfo(
             executable = output_file,
             runfiles = runfiles,
-            #files = depset(direct = ["test.xml"]),
         ),
     ]
 
@@ -150,7 +155,7 @@ runner_for_cc_static_test = rule(
         "deps": attr.label_list(providers = [CcInfo]),
         "info_binary": attr.label(executable = True, cfg = "target", providers = [CcInfo]),
         "_cc_toolchain": attr.label(default = "@bazel_tools//tools/cpp:current_cc_toolchain"),
-        "_needed_libs": attr.label_list(default = ["//lib:static_test", "//lib/private:support"], providers = [CcInfo]),
+        "_needed_libs": attr.label_list(default = ["//lib:static_test"], providers = [CcInfo]),
         "_static_tester": attr.label(default = "//rules/static_tester:static_tester", executable = True, cfg = "target", providers = [CcInfo]),
         "_pretend_test_binary_template": attr.label(allow_single_file = True, default = "pretend_test_binary.sh.tpl"),
     },
