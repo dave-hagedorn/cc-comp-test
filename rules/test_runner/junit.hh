@@ -9,7 +9,7 @@
 #include "fmt/core.h"
 #include "log.hh"
 #include "range/v3/all.hpp"
-#include "rules/static_tester/test_suite_run.hh"
+#include "rules/test_runner/test_suite_run.hh"
 #include "tinyxml2.h"
 
 #include "test_case_run.hh"

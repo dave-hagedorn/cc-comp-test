@@ -8,9 +8,9 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "bazel-utils",
-    sha256 = "18a5a55fdbef6670fcde4c5b81ee3e36150b653d7597b7c0969ae836774dc423",
-    strip_prefix = "bazel-utils-1.1.0",
-    url = "https://www.github.com/dave-hagedorn/bazel-utils/archive/1.1.0.zip",
+    sha256 = "da3d62e2ae11b37cbae92bc31c6c260494831a9cc7e33a6f1702308686426c2a",
+    strip_prefix = "bazel-utils-1.2.0",
+    url = "https://www.github.com/dave-hagedorn/bazel-utils/archive/1.2.0.zip",
 )
 
 load("@bazel-utils//:bazel-utils.bzl", "LLVM_VERSION", "cc_workspace_dependencies", "github_archive")
@@ -36,7 +36,7 @@ llvm_toolchain(
 load("@llvm_toolchain//:toolchains.bzl", "llvm_register_toolchains")
 
 llvm_register_toolchains()
-# End common post-setup
+# End common setup
 
 github_archive(
     org = "ericniebler",
@@ -52,8 +52,6 @@ github_archive(
     sha256 = "3c75de0c43e899a7581d7304cf01c152a924750def179f66ee0b94a3e4fdc5db",
     version = "65dd2ea52c23721660cf027525c6640f868381f7",
 )
-
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 github_archive(
     org = "nelhage",

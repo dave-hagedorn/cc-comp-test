@@ -8,7 +8,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug",
-            "program": "${workspaceFolder}/bazel-out/k8-dbg/bin/sample/test.sh.runfiles/__main__/rules/static_tester/static_tester",
+            "program": "${workspaceFolder}/bazel-out/k8-dbg/bin/sample/test.sh.runfiles/__main__/rules/test_runner/test_runner",
             "args": [
                 "-i",
                 "sample/test.cc_static_test.info_binary",

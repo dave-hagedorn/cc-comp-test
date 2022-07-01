@@ -1,6 +1,6 @@
 #pragma once
 
-#include "static_test/static_test.hh"
+#include "static_test/comp_test.hh"
 
 namespace dhagedorn::static_tester::priv {
 

@@ -16,26 +16,25 @@
 #define JOIN(A, B) A##B
 #define EXPAND_CALL(MACRO, ...) MACRO(__VA_ARGS__)
 
-#define STATIC_TEST_SYMBOL(NAME) EXPAND_CALL(JOIN, NAME, __LINE__)
+#define UNIQUE_SYMBOL(NAME) EXPAND_CALL(JOIN, NAME, __LINE__)
 
-#define STATIC_SUITE(NAME) namespace STATIC_TEST_SYMBOL(_test_suite_)
+#define TEST_SUITE(NAME) namespace UNIQUE_SYMBOL(_test_suite_)
 
-#define STATIC_TEST(OBJECT, VERB, EXPECTED_ASSERT_MESSAGE)                     \
+#define TEST_COMP_ASSERT(OBJECT, VERB, EXPECTED_ASSERT_MESSAGE)                \
     static auto EXPAND_CALL(JOIN, _static_test_define, __LINE__) = [] {        \
         std::string pretty = std::string{__PRETTY_FUNCTION__};                 \
-        std::string ns = pretty.substr(0, pretty.find_first_of(':'));          \
         dhagedorn::static_test::_test_cases.push_back({                        \
             __FILE__,                                                          \
             __LINE__,                                                          \
             __PRETTY_FUNCTION__,                                               \
-            EXPAND_CALL(STRINGIFY, STATIC_TEST_SYMBOL(_test_case_)),           \
+            EXPAND_CALL(STRINGIFY, UNIQUE_SYMBOL(_test_case_)),                \
             OBJECT,                                                            \
             VERB,                                                              \
             EXPECTED_ASSERT_MESSAGE,                                           \
         });                                                                    \
         return 0;                                                              \
     }();                                                                       \
-    template <typename TEST_INFO> static void STATIC_TEST_SYMBOL(_test_case_)()
+    template <typename TEST_INFO> static void UNIQUE_SYMBOL(_test_case_)()
 
 namespace dhagedorn::static_test {
 struct test_case {
@@ -154,6 +153,5 @@ struct test_case {
 };
 
 inline std::vector<test_case> _test_cases;
-inline std::string _current_suite;
 
 } // namespace dhagedorn::static_test

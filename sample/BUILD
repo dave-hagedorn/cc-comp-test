@@ -1,6 +1,5 @@
-load("//rules:cc_static_test.bzl", "cc_static_test")
+load("//rules:cc_comp_test.bzl", "cc_comp_test")
 
-cc_static_test(
+cc_comp_test(
     name = "test",
-    src = "test.cc",
 )

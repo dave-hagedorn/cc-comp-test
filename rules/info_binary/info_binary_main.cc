@@ -1,5 +1,5 @@
 
-#include "static_test/static_test.hh"
+#include "static_test/comp_test.hh"
 
 namespace dst = dhagedorn::static_test;
 

@@ -4,12 +4,6 @@
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("@rules_cc//cc:action_names.bzl", "CPP_COMPILE_ACTION_NAME")
 
-MyCCompileInfo = provider(doc = "", fields = ["object"])
-
-DISABLED_FEATURES = [
-    "module_maps",
-]
-
 def _make_includes_rel_to_rundir(ctx, command_line):
     # Bazel cc_* rules generate info assuming a compile runs from the workspace root, ex:
     # /home/<you>/.cache/bazel/_bazel_<you>/<sha256_of_workspace_folder>/execroot/__main__
@@ -41,7 +35,12 @@ def _make_includes_rel_to_rundir(ctx, command_line):
 
     return [arg.replace(ctx.bin_dir.path + "/", "") for arg in command_line]
 
-def _cc_info(ctx, cc_source_file, cc_deps):
+def _find_cc_info(ctx, cc_source_file, cc_deps):
+    """Return info about how to compile a single source file and its dependencies
+
+    cc_source_file:     The single source file being compiled
+    cc_deps:            Its deps - likely just other cc_library()'s
+    """
     cc_toolchain = find_cpp_toolchain(ctx)
     source_file = ctx.file.src
 
@@ -59,7 +58,7 @@ def _cc_info(ctx, cc_source_file, cc_deps):
         ctx = ctx,
         cc_toolchain = cc_toolchain,
         requested_features = ctx.features,
-        unsupported_features = DISABLED_FEATURES + ctx.disabled_features,
+        unsupported_features = ["module_maps"] + ctx.disabled_features,
     )
 
     c_compiler_path = cc_common.get_tool_for_action(
@@ -85,8 +84,6 @@ def _cc_info(ctx, cc_source_file, cc_deps):
         variables = c_compile_variables,
     )
 
-    #print(command_line)
-
     env = cc_common.get_environment_variables(
         feature_configuration = feature_configuration,
         action_name = CPP_COMPILE_ACTION_NAME,
@@ -97,31 +94,45 @@ def _cc_info(ctx, cc_source_file, cc_deps):
         compiler_path = c_compiler_path,
         command_line = _make_includes_rel_to_rundir(ctx, command_line),
         env = env,
-        files = cc_toolchain.all_files.to_list(),
+        # Not sure if all_files is needed or if just compiler/compiler_executable is needed
+        toolchain_files = cc_toolchain.all_files.to_list(),
     )
 
-def _runner_for_cc_static_test(ctx):
+def _find_dep_headers(cc_deps):
+    """Finds all public headers of all passed in deps"""
+
+    dep_headers = []
+    for dep in cc_deps:
+        dep_headers.extend(dep[CcInfo].compilation_context.direct_public_headers)
+
+    return dep_headers
+
+def _impl_runner_cc_comp_test(ctx):
+    """Impl of rule to build the test runner for testing compile time asserts
+
+    ctx:    Rule context
+    """
     source_file = ctx.file.src
 
     output_file = ctx.actions.declare_file(ctx.label.name + ".sh")
-    static_tester = ctx.attr._static_tester
-    pretend_test_binary_template = ctx.file._pretend_test_binary_template
+    test_runner = ctx.attr._test_runner
+    test_runner_wrapper = ctx.file._test_runner_wrapper
     info_binary = ctx.attr.info_binary.files_to_run.executable
-    static_tester = ctx.executable._static_tester
+    test_runner = ctx.executable._test_runner
     cc_source_file = ctx.file.src
     cc_deps = ctx.attr.deps + ctx.attr._needed_libs
 
-    cc_info = _cc_info(ctx, cc_source_file = cc_source_file, cc_deps = cc_deps)
+    cc_info = _find_cc_info(ctx, cc_source_file = cc_source_file, cc_deps = cc_deps)
 
     # See https://bazel.build/reference/test-encyclopedia#test-sharding
     # Can shard runs at runtime - threading
     ctx.actions.expand_template(
-        template = pretend_test_binary_template,
+        template = test_runner_wrapper,
         substitutions = {
             # need to use short_path to get path relative to runfiles location - see: https://bazel.build/rules/rules#runfiles_location
-            "{STATIC_TESTER}": static_tester.short_path,
+            "{TEST_RUNNER}": test_runner.short_path,
             "{INFO_BINARY}": info_binary.short_path,
-            "{COMPILER}": cc_info.compiler_path,
+            "{COMPILER_PATH}": cc_info.compiler_path,
             "{SOURCE_FILE}": source_file.short_path,
             "{ARGS}": " ".join(cc_info.command_line),
         },
@@ -129,14 +140,10 @@ def _runner_for_cc_static_test(ctx):
         is_executable = True,
     )
 
-    dep_headers = []
-    for dep in cc_deps:
-        dep_headers.extend(dep[CcInfo].compilation_context.direct_public_headers)
-
-    files = dep_headers + cc_info.files + [static_tester, source_file, info_binary]
+    dep_headers = _find_dep_headers(cc_deps = cc_deps)
 
     runfiles = ctx.runfiles(
-        files = files,
+        files = dep_headers + cc_info.toolchain_files + [test_runner, source_file, info_binary],
     )
 
     # TODO sharding: https://bazel.build/reference/test-encyclopedia#test-sharding
@@ -148,26 +155,77 @@ def _runner_for_cc_static_test(ctx):
         ),
     ]
 
-runner_for_cc_static_test = rule(
-    implementation = _runner_for_cc_static_test,
+_runner_cc_comp_test = rule(
+    doc = """
+    Generates the test runner to test compile time assertions
+
+    This is not the actual rule the end-user sees, but is wrapped by the cc_comp_test() macros
+    This is because a helper cc_binary "info_binary" also needs to be defined by this macro, and is used by
+    this rule during test execution
+    """,
+    implementation = _impl_runner_cc_comp_test,
     attrs = {
-        "src": attr.label(allow_single_file = True),
-        "deps": attr.label_list(providers = [CcInfo]),
-        "info_binary": attr.label(executable = True, cfg = "target", providers = [CcInfo]),
-        "_cc_toolchain": attr.label(default = "@bazel_tools//tools/cpp:current_cc_toolchain"),
-        "_needed_libs": attr.label_list(default = ["//lib:static_test"], providers = [CcInfo]),
-        "_static_tester": attr.label(default = "//rules/static_tester:static_tester", executable = True, cfg = "target", providers = [CcInfo]),
-        "_pretend_test_binary_template": attr.label(allow_single_file = True, default = "pretend_test_binary.sh.tpl"),
+        "src": attr.label(
+            allow_single_file = True,
+            doc = "The source file containing compile time assert test cases",
+        ),
+        "deps": attr.label_list(
+            providers = [CcInfo],
+            doc = "Dependencies of this test - usually other cc_library()'s",
+        ),
+        "info_binary": attr.label(
+            executable = True,
+            cfg = "target",
+            providers = [CcInfo],
+            doc = "Info binary - this provides about the compile time test cases defined in 'src', and is used by the test runner to discover these test cases",
+        ),
+        "_cc_toolchain": attr.label(
+            default = "@bazel_tools//tools/cpp:current_cc_toolchain",
+            doc = "Implicit arg - needed to get toolchain - https://bazel.build/docs/integrating-with-rules-cc#access-c-toolchain",
+        ),
+        "_needed_libs": attr.label_list(
+            default = ["//lib:static_test"],
+            providers = [CcInfo],
+            doc = "Implicit arg - helper libraries needed to build 'src' when testing compile time test cases",
+        ),
+        "_test_runner": attr.label(
+            default = "//rules/test_runner:test_runner",
+            executable = True,
+            cfg = "target",
+            providers = [CcInfo],
+            doc = "Implicit arg - the actual test runner - runs the test cases in 'src', validates results, and writes junit XML.  Wrapped by '_test_runner_wrapper'",
+        ),
+        "_test_runner_wrapper": attr.label(
+            allow_single_file = True,
+            default = "test.sh.tpl",
+            doc = "Implicit arg - the generated test binary Bazel will run when executing the test cases in 'src'.  Just wraps '_test_runner' - captures needed args and context for _test_runner",
+        ),
     },
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
     fragments = ["cpp"],
     test = True,
 )
 
-def cc_static_test(name, src = None, deps = []):
-    src = name if not src else src
+def cc_comp_test(name, src = None, deps = []):
+    """Define a C++ compile time test
 
-    info_binary = "{}.cc_static_test.info_binary".format(name)
+    Just like cc_test() but for testing compile time assertions like static_assert().
+
+    Use this to write test cases for APIs in your library that should static_assert() under expected conditions
+
+    Note:   This macro contains two parts
+        * {name}.cc_comp_test.info_binary - a cc_binary() that outputs info about the test cases in 'src'
+            * This is used by the actual test rule at test time
+        * a _runner_cc_comp_test() rule that generates the actual test binary Bazel runs at test time
+
+    Args:
+        name:   Will be used for name of _runner_cc_comp_test rule
+        src:    The source file containing compile time test cases.  Optional - if omitted, '{name}.cc' is used instead
+        deps:   Dependencies of src - other cc_library()'s, etc.  Usually the library you are writing compile time test cases for
+    """
+    src = src if src else name + ".cc"
+
+    info_binary = "{}.cc_comp_test.info_binary".format(name)
 
     native.cc_binary(
         name = info_binary,
@@ -175,7 +233,7 @@ def cc_static_test(name, src = None, deps = []):
         deps = deps + ["//lib:static_test", "//rules/info_binary:info_binary_main"],
     )
 
-    runner_for_cc_static_test(
+    _runner_cc_comp_test(
         name = name,
         src = src,
         deps = deps,

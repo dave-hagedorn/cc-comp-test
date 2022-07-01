@@ -1,13 +1,13 @@
 cc_binary(
-    name = "static_tester",
+    name = "test_runner",
     srcs = [
         "code.hh",
         "compiler.hh",
         "executable.hh",
         "junit.hh",
         "log.hh",
-        "static_tester.cc",
         "test_case_run.hh",
+        "test_runner.cc",
         "test_suite.hh",
         "test_suite_run.hh",
         "util.hh",

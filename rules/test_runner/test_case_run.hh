@@ -9,7 +9,7 @@
 #include "tinyxml2.h"
 
 #include "compiler.hh"
-#include "static_test/static_test.hh"
+#include "static_test/comp_test.hh"
 #include "util.hh"
 
 namespace dhagedorn::static_tester::priv {
@@ -32,7 +32,7 @@ struct testcase_run {
 
     auto result() const {
         if (!compiler_output) {
-            return test_case_result::skipped;
+            return test_case_result::skipped; // TODO
         }
 
         auto compiled = compiler_output->compiled;

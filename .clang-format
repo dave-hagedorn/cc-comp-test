@@ -1,7 +1,5 @@
----
 BasedOnStyle: LLVM
 IndentWidth: 4
----
 Language: Cpp
 AlignOperands: Align
 BreakBeforeBinaryOperators: true
@@ -9,3 +7,6 @@ BinPackParameters: false
 BinPackArguments: false
 BreakConstructorInitializers: BeforeComma
 AccessModifierOffset: -4
+ExperimentalAutoDetectBinPacking: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AlwaysBreakTemplateDeclarations: true

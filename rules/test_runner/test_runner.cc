@@ -19,9 +19,9 @@
 #include "compiler.hh"
 #include "executable.hh"
 #include "junit.hh"
-#include "lib/static_test.hh"
+#include "lib/comp_test.hh"
 #include "log.hh"
-#include "static_test/static_test.hh"
+#include "static_test/comp_test.hh"
 #include "test_case_run.hh"
 #include "test_suite.hh"
 #include "test_suite_run.hh"
@@ -41,6 +41,7 @@ struct args {
     std::string compiler;
     std::optional<std::string> temp;
     std::optional<std::string> junit;
+    bool colour;
     std::vector<std::string> compiler_args;
 
     void print() {
@@ -49,6 +50,12 @@ struct args {
             source,
             "compiler",
             compiler,
+            "temp",
+            temp,
+            "junit",
+            junit,
+            "colour",
+            colour,
             "compiler_args",
             compiler_args);
     }
@@ -99,6 +106,7 @@ auto parse_opts(int argc, char **argv) {
         ("compiler,c", po::value<std::string>()->required(), "Path to compiler")
         ("temp,t", po::value<std::string>(), "Temp dir (defaults to system specified, but your build system may have another")
         ("junit,j", po::value<std::string>(), "Junit output file")
+        ("no-colour", po::bool_switch()->default_value(false), "Disable colour in log output")
         ("help,h", "This menu")
     ;
     // clang-format on
@@ -136,6 +144,7 @@ auto parse_opts(int argc, char **argv) {
         opt_if(parsed_opts.count("junit")).then([&] {
             return parsed_opts["junit"].as<std::string>();
         }),
+        !parsed_opts["no-colour"].as<bool>(),
         positional,
     };
 }
@@ -150,11 +159,11 @@ auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
     auto runner = fmt::format(
         R"(
         struct TEST_INFO {{
-            static constexpr std::string_view suite = "{}";
-            static constexpr std::string_view object = "{}";
-            static constexpr std::string_view verb = "{}";
-            static constexpr std::string_view expected_static_assert = "{}";
-            static constexpr std::string_view file = "{}";
+            static constexpr const char* suite = "{}";
+            static constexpr const char* object = "{}";
+            static constexpr const char* verb = "{}";
+            static constexpr const char* expected_static_assert = "{}";
+            static constexpr const char* file = "{}";
             static constexpr unsigned line = {};
         }};
 
@@ -266,5 +275,8 @@ int main(int argc, char **argv) {
 
     write_junit(args, runs);
 
-    return 0;
+    auto passed
+        = ranges::all_of(runs, [](auto &run) { return run.all_passed(); });
+
+    return passed ? 0 : 1;
 }
