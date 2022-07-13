@@ -17,7 +17,7 @@ cc_binary(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//lib:static_test",
+        "//lib:comp_test",
         "@boost//:asio",
         "@boost//:filesystem",
         "@boost//:process",

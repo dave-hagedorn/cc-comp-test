@@ -9,7 +9,7 @@
 #include "fmt/core.h"
 #include "log.hh"
 #include "range/v3/all.hpp"
-#include "rules/test_runner/test_suite_run.hh"
+#include "test_runner/test_suite_run.hh"
 #include "tinyxml2.h"
 
 #include "test_case_run.hh"
@@ -66,7 +66,8 @@ public:
     }
 
 private:
-    template <typename T> auto _sec(T &&val) {
+    template <typename T>
+    auto _sec(T &&val) {
         return 1.0f
                * std::chrono::duration_cast<std::chrono::milliseconds>(val)
                      .count()

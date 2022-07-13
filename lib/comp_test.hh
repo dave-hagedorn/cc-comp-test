@@ -18,25 +18,68 @@
 
 #define UNIQUE_SYMBOL(NAME) EXPAND_CALL(JOIN, NAME, __LINE__)
 
-#define TEST_SUITE(NAME) namespace UNIQUE_SYMBOL(_test_suite_)
+template <typename T>
+struct required {
+    template <typename _T>
+    required(_T &&v)
+        : value{std::forward<_T>(v)} {}
 
-#define TEST_COMP_ASSERT(OBJECT, VERB, EXPECTED_ASSERT_MESSAGE)                \
+    operator T &() { return value; }
+
+    T value;
+};
+
+
+// TODO  - NAME
+
+struct test_suite_args {
+    required<std::string> name;
+    required<std::string> description;
+};
+
+#define TEST_SUITE(...) \
+static auto EXPAND_CALL(JOIN, _test_suite_define, __LINE__) = [] { \
+    test_suite_args args{__VA_ARGS__}; \
+    std::string id = EXPAND_CALL(STRINGIFY, UNIQUE_SYMBOL(_test_suite_)); \
+    dhagedorn::static_test::_test_suites[id] = test_suite{std::move(args.name), std::move(args.description)}; \
+    return 0; \
+}(); \
+namespace UNIQUE_SYMBOL(_test_suite_)
+
+
+struct comp_assert_args {
+    comp_assert_args(comp_assert_args &&) = delete;
+    comp_assert_args(const comp_assert_args &) = delete;
+
+    required<std::string> thing;
+    required<std::string> will;
+    required<std::string> assert_with;
+};
+
+#define TEST_COMP_ASSERT(...)                                                  \
     static auto EXPAND_CALL(JOIN, _static_test_define, __LINE__) = [] {        \
+        comp_assert_args args{__VA_ARGS__};                                    \
         std::string pretty = std::string{__PRETTY_FUNCTION__};                 \
         dhagedorn::static_test::_test_cases.push_back({                        \
             __FILE__,                                                          \
             __LINE__,                                                          \
             __PRETTY_FUNCTION__,                                               \
             EXPAND_CALL(STRINGIFY, UNIQUE_SYMBOL(_test_case_)),                \
-            OBJECT,                                                            \
-            VERB,                                                              \
-            EXPECTED_ASSERT_MESSAGE,                                           \
+            std::move(args.thing),                                             \
+            std::move(args.will),                                              \
+            std::move(args.assert_with),                                       \
         });                                                                    \
         return 0;                                                              \
     }();                                                                       \
-    template <typename TEST_INFO> static void UNIQUE_SYMBOL(_test_case_)()
+    template <typename TEST_INFO>                                              \
+    static void UNIQUE_SYMBOL(_test_case_)()
 
 namespace dhagedorn::static_test {
+struct test_suite {
+    std::string name;
+    std::string description;
+};
+
 struct test_case {
     std::string file;
     unsigned long line;
@@ -57,7 +100,10 @@ struct test_case {
         return escaped;
     }
 
-    template <typename T> auto escape(const T &value) const { return value; }
+    template <typename T>
+    auto escape(const T &value) const {
+        return value;
+    }
 
     // clang-format off
     // clang: "auto test::(anonymous class)::operator()() const"
@@ -153,5 +199,6 @@ struct test_case {
 };
 
 inline std::vector<test_case> _test_cases;
+inline std::unordered_map<std::string, test_suite> _test_suites;
 
 } // namespace dhagedorn::static_test

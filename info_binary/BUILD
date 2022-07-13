@@ -4,5 +4,5 @@ cc_library(
         "info_binary_main.cc",
     ],
     visibility = ["//visibility:public"],
-    deps = ["//lib:static_test"],
+    deps = ["//lib:comp_test"],
 )

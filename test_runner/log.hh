@@ -38,7 +38,8 @@ fmt::color color_for() {
     using DECAYED = std::decay_t<T>;
     constexpr DECAYED *dummy = 0;
 
-    if (std::is_integral<DECAYED>{} || std::is_floating_point<DECAYED>{}) {
+    if constexpr (std::is_integral<DECAYED>{}
+                  || std::is_floating_point<DECAYED>{}) {
         return fmt::color::green;
     } else if (std::is_same<DECAYED, std::string>{}
                || is_string_literal(dummy)) {
@@ -58,8 +59,6 @@ struct is_optional<std::optional<T>> : std::true_type {};
 
 template <typename T>
 constexpr bool is_optional_v = is_optional<T>{};
-
-void log_fields() {}
 
 template <typename K, typename V, typename... REST>
 void log_fields(K &&k, V &&v, REST &&...rest) {
@@ -85,8 +84,13 @@ void log_fields(K &&k, V &&v, REST &&...rest) {
         fmt::print(fmt::fg(color_for<V>()), "{}\n", std::forward<V>(v));
     }
 
-    log_fields(rest...);
+    if constexpr (sizeof...(REST) > 0) {
+        log_fields(rest...);
+    }
 }
+
+inline bool colour_enabled = false;
+void log_enable_colour(bool enabled) { colour_enabled = enabled; }
 
 template <typename... ARGS>
 void log(const char *msg, ARGS &&...args) {

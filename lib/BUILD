@@ -1,8 +1,8 @@
 cc_library(
-    name = "static_test",
+    name = "comp_test",
     hdrs = [
         "comp_test.hh",
     ],
-    include_prefix = "static_test",
+    include_prefix = "comp_test",
     visibility = ["//visibility:public"],
 )
