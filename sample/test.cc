@@ -13,7 +13,7 @@ void to_string(T &&value) {
     std::to_string(value);
 }
 
-TEST_SUITE("numbers") {
+TEST_SUITE("numbers", "number cases") {
 
     TEST_COMP_ASSERT(
         "to_string", "only works on numbers", "type not supported") {

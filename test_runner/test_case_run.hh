@@ -8,8 +8,8 @@
 #include "range/v3/all.hpp"
 #include "tinyxml2.h"
 
+#include "comp_test/comp_test.hh"
 #include "compiler.hh"
-#include "static_test/comp_test.hh"
 #include "util.hh"
 
 namespace dhagedorn::static_tester::priv {

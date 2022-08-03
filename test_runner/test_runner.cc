@@ -16,12 +16,12 @@
 #include "range/v3/all.hpp"
 
 #include "code.hh"
+#include "comp_test/comp_test.hh"
 #include "compiler.hh"
 #include "executable.hh"
 #include "junit.hh"
 #include "lib/comp_test.hh"
 #include "log.hh"
-#include "static_test/comp_test.hh"
 #include "test_case_run.hh"
 #include "test_suite.hh"
 #include "test_suite_run.hh"
@@ -225,25 +225,27 @@ auto get_tests(const args &args) {
 
     log("raw output", "output", output.stdout);
 
-    auto test_cases
-        = output.stdout
-          | rv::transform(&dhagedorn::static_test::test_case::from_string)
-          | rv::transform([](const auto &val) {
-                return std::pair{val.test_suite(), val};
-            })
-          | r::to<std::vector>()
-          | ra::stable_sort([](const auto &a, const auto &b) {
-                return a.second.test_suite() < b.second.test_suite();
-            })
-          | ra::stable_sort([](const auto &a, const auto &b) {
-                return a.second.line < b.second.line;
-            });
+    auto sorted_verctor = r::to<std::vector>()
+                          | ra::stable_sort([](const auto &a, const auto &b) {
+                                return a.line < b.line;
+                            });
 
-    std::map<std::string, test_suite> suites;
-    for (auto &[k, v] : test_cases) {
-        suites[k].name = v.test_suite();
-        suites[k].test_cases.push_back(v);
-    }
+    auto filter_and_strip = [](std::string_view prefix) {
+        return rv::remove_if(
+                   [&](auto &val) { return !(val.find(prefix) == 0); })
+               | rv::transform(
+                   [&](auto &val) { return val.substr(prefix.size()); });
+    };
+
+    auto test_suites
+        = output.stdout | filter_and_strip("test_suite:")
+          | rv::transform(&dhagedorn::static_test::test_suite::from_string)
+          | sorted_verctor;
+
+    auto test_cases
+        = output.stdout | filter_and_strip("test_case:")
+          | rv::transform(&dhagedorn::static_test::test_case::from_string)
+          | sorted_verctor;
 
     return suites | rv::values | r::to<std::vector>();
 }
