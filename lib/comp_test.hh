@@ -162,7 +162,76 @@ private:
     };
 };
 
+// clang-format off
+    // clang: "auto namespace_name::(anonymous class)::operator()() const"
+    // gcc: "namespace_name::<lambda()>\000"
+    // msvc: "auto __cdecl namespace_name::<lambda_676ec28c60ffff024507b007ccd4a443>::operator()(void) const"
+    // For no NS = remove "namespace_name::"
+// clang-format on
+inline std::string namespace_name(const std::string &symbol) {
+    std::regex reg{R"(.*\s+([\w\d_]+)::(\(anonymous|<lambda).*)"};
+
+    std::smatch match;
+    if (std::regex_search(symbol, match, reg)) {
+        return match[1].str();
+    }
+
+    return "";
+}
+
+template <typename T>
+struct opt {
+    bool set;
+    T &value;
+};
+
 } // namespace detail
+
+struct test_case;
+
+struct test_suite {
+    std::string file;
+    unsigned long line;
+    std::string namespace_name;
+    std::string name;
+    std::string description;
+
+    std::string to_string() const {
+        detail::putter put;
+
+        put(file);
+        put(line);
+        put(symbol);
+        put(name);
+        put(description);
+
+        return put.str();
+    }
+
+    static test_suite from_string(const std::string &value) {
+        detail::getter get{value};
+
+        try {
+            return test_suite{
+                get(),
+                std::stoul(get()),
+                get(),
+                get(),
+                get(),
+            };
+        } catch (std::exception &exception) {
+            std::cerr << exception.what() << std::endl;
+            throw exception;
+        }
+    }
+
+    std::vector<test_case *> test_cases() {
+        for (auto &tc; _test_cases) {
+        }
+    }
+};
+
+inline std::vector<test_suite> _test_suites;
 
 struct test_case {
     std::string file;
@@ -174,23 +243,6 @@ struct test_case {
     std::string object;
     std::string verb;
     std::string expected_assert_message;
-
-    // clang-format off
-    // clang: "auto test::(anonymous class)::operator()() const"
-    // gcc: "test::<lambda()>\000"
-    // msvc: "auto __cdecl test::<lambda_676ec28c60ffff024507b007ccd4a443>::operator()(void) const"
-    // For no NS = remove "test::"
-    // clang-format on
-    std::string test_suite_symbol() const {
-        std::regex reg{R"(.*\s+([\w\d_]+)::(\(anonymous|<lambda).*)"};
-
-        std::smatch match;
-        if (std::regex_search(detailed_name, match, reg)) {
-            return match[1].str();
-        }
-
-        return "";
-    }
 
     std::string to_string() const {
         detail::putter put;
@@ -224,50 +276,20 @@ struct test_case {
             throw exception;
         }
     }
-};
 
-struct test_suite {
-    std::string file;
-    unsigned long line;
+    test_suite *suite() const {
+        auto enclosing_namespace = detail::namespace_name(detailed_name);
 
-    std::string symbol;
-    std::string name;
-    std::string description;
-
-    std::string to_string() const {
-        detail::putter put;
-
-        put(file);
-        put(line);
-        put(symbol);
-        put(name);
-        put(description);
-
-        return put.str();
-    }
-
-    static test_suite from_string(const std::string &value) {
-        detail::getter get{value};
-
-        try {
-            return test_suite{
-                get(),
-                std::stoul(get()),
-                get(),
-                get(),
-                get(),
-            };
-        } catch (std::exception &exception) {
-            std::cerr << exception.what() << std::endl;
-            throw exception;
+        for (auto &ts : _test_suites) {
+            if (ts.symbol == enclosing_namespace) {
+                return &ts;
+            }
         }
-    }
 
-    // filled in later
-    std::vector<test_case> cases;
+        return nullptr;
+    }
 };
 
 inline std::vector<test_case> _test_cases;
-inline std::vector<test_suite> _test_suites;
 
 } // namespace dhagedorn::static_test

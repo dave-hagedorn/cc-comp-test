@@ -5,7 +5,7 @@ refresh_compile_commands(
     exclude_external_sources = True,
     exclude_headers = "external",
     targets = {
-        "//rules/test_runner:test_runner": "",
+        "//test_runner:test_runner": "",
     },
 )
 
@@ -14,6 +14,6 @@ refresh_compile_commands(
     exclude_external_sources = True,
     exclude_headers = "all",
     targets = {
-        "//rules/test_runner:test_runner": "",
+        "//test_runner:test_runner": "",
     },
 )

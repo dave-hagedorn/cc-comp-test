@@ -59,6 +59,8 @@ struct testcase_run {
 
         return test_case_result::other_compile_failure;
     }
+
+    auto passed() { return result() == test_case_result::did_static_assert; }
 };
 
 } // namespace dhagedorn::static_tester::priv

@@ -173,13 +173,15 @@ auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
             return 0;
         }}
     )",
-        tc.test_suite(),
+        "",
+        // tc.test_suite(),
         tc.object,
         tc.verb,
         tc.expected_assert_message,
         tc.file,
         tc.line,
-        tc.test_suite() == "" ? ""s : tc.test_suite() + "::",
+        "",
+        // tc.test_suite() == "" ? ""s : tc.test_suite() + "::",
         tc.symbol);
 
     c.append(runner);
@@ -197,20 +199,11 @@ auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
     };
 }
 
-auto run_suite(const args &args, const test_suite &suite) {
-    auto runs = suite.test_cases | ranges::views::transform([&](auto &tc) {
-                    return run_case(args, tc);
-                })
-                | ranges::to<std::vector>();
+auto run_tests(const args &args,
+               const std::vector<static_test::test_case> &cases) {
 
-    return runs;
-}
-
-auto run_tests(const args &args, const std::vector<test_suite> &suites) {
-
-    auto runs = suites | rv::transform([&](auto &ts) {
-                    return test_suite_run{ts, run_suite(args, ts)};
-                })
+    auto runs = cases
+                | rv::transform([&](auto &tc) { return run_case(args, tc); })
                 | ranges::to<std::vector>();
 
     return runs;
@@ -247,7 +240,7 @@ auto get_tests(const args &args) {
           | rv::transform(&dhagedorn::static_test::test_case::from_string)
           | sorted_verctor;
 
-    return suites | rv::values | r::to<std::vector>();
+    return test_cases;
 }
 
 auto write_junit(const args &args, const std::vector<test_suite_run> &runs) {
@@ -273,12 +266,12 @@ int main(int argc, char **argv) {
 
     auto tests = get_tests(args);
 
-    auto runs = run_tests(args, tests);
+    auto case_runs = run_tests(args, tests);
 
-    write_junit(args, runs);
+    // write_junit(args, runs);
 
     auto passed
-        = ranges::all_of(runs, [](auto &run) { return run.all_passed(); });
+        = ranges::all_of(case_runs, [](auto &run) { return run.passed(); });
 
     return passed ? 0 : 1;
 }
