@@ -90,13 +90,16 @@ public:
 
         comp_result.compile_output = exec.run();
 
-        log("comp output", "stdout", comp_result.compile_output.stdout,
-            "stderr", comp_result.compile_output.stderr);
+        log("comp output",
+            "stdout",
+            comp_result.compile_output.stdout,
+            "stderr",
+            comp_result.compile_output.stderr);
 
         if (bfs::is_regular(output)) {
-            bfs::permissions(output, bfs::perms::owner_exe
-                                         | bfs::perms::owner_read
-                                         | bfs::perms::owner_write);
+            bfs::permissions(output,
+                             bfs::perms::owner_exe | bfs::perms::owner_read
+                                 | bfs::perms::owner_write);
         }
 
         comp_result.input = input;

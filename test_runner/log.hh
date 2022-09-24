@@ -96,7 +96,9 @@ template <typename... ARGS>
 void log(const char *msg, ARGS &&...args) {
     fmt::print("{}\n", msg);
 
-    log_fields(std::forward<ARGS>(args)...);
+    if constexpr (sizeof...(ARGS) > 0) {
+        log_fields(std::forward<ARGS>(args)...);
+    }
 }
 
 } // namespace dhagedorn::static_tester::priv

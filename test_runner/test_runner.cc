@@ -188,6 +188,8 @@ auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
 
     auto comp = compiler(args.compiler, args.compiler_args);
 
+    log("compiling...");
+
     auto result = comp.compile(c.as_file());
 
     auto duration = std::chrono::steady_clock::now() - start;
@@ -199,12 +201,14 @@ auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
     };
 }
 
-auto run_tests(const args &args,
-               const std::vector<static_test::test_case> &cases) {
+auto run_tests(
+    const args &args,
+    const std::unordered_map<std::string, static_test::test_case> &cases) {
 
-    auto runs = cases
-                | rv::transform([&](auto &tc) { return run_case(args, tc); })
-                | ranges::to<std::vector>();
+    auto runs
+        = cases | rv::transform([](auto &tc) { return tc.second; })
+          | rv::transform([&](const auto &tc) { return run_case(args, tc); })
+          | ranges::to<std::vector>();
 
     return runs;
 }
@@ -218,35 +222,41 @@ auto get_tests(const args &args) {
 
     log("raw output", "output", output.stdout);
 
-    auto sorted_verctor = r::to<std::vector>()
-                          | ra::stable_sort([](const auto &a, const auto &b) {
-                                return a.line < b.line;
-                            });
-
     auto filter_and_strip = [](std::string_view prefix) {
         return rv::remove_if(
-                   [&](auto &val) { return !(val.find(prefix) == 0); })
+                   [=](auto &val) { return !(val.find(prefix) == 0); })
                | rv::transform(
-                   [&](auto &val) { return val.substr(prefix.size()); });
+                   [=](auto &val) { return val.substr(prefix.size()); });
     };
 
-    auto test_suites
+    log("stdout", "output", output.stdout);
+
+    auto suites_by_symbol
         = output.stdout | filter_and_strip("test_suite:")
           | rv::transform(&dhagedorn::static_test::test_suite::from_string)
-          | sorted_verctor;
+          | rv::transform([](const auto &suite) {
+                return std::pair{
+                    suite.symbol,
+                    suite,
+                };
+            })
+          | r::to<std::unordered_map>();
 
-    auto test_cases
+    auto cases_by_suite_symbol
         = output.stdout | filter_and_strip("test_case:")
           | rv::transform(&dhagedorn::static_test::test_case::from_string)
-          | sorted_verctor;
+          | rv::transform([](const auto &tc) {
+                return std::pair{tc.test_suite_symbol(), tc};
+            })
+          | r::to<std::unordered_map>();
 
-    return test_cases;
+    return std::tuple{suites_by_symbol, cases_by_suite_symbol};
 }
 
-auto write_junit(const args &args, const std::vector<test_suite_run> &runs) {
+auto write_junit(const args &args, const std::vector<testcase_run> &runs) {
     if (args.junit) {
         junit j;
-        j.write(runs, *args.junit);
+        // j.write(runs, *args.junit);
     }
 }
 
@@ -264,11 +274,11 @@ int main(int argc, char **argv) {
 
     args.print();
 
-    auto tests = get_tests(args);
+    auto [suites, cases] = get_tests(args);
 
-    auto case_runs = run_tests(args, tests);
+    auto case_runs = run_tests(args, cases);
 
-    // write_junit(args, runs);
+    write_junit(args, case_runs);
 
     auto passed
         = ranges::all_of(case_runs, [](auto &run) { return run.passed(); });

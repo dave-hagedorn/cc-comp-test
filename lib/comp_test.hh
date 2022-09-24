@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdlib>
+#include <functional>
 #include <iostream>
 #include <regex>
 #include <sstream>
@@ -78,7 +79,8 @@ struct comp_assert_args {
     template <typename TEST_INFO>                                              \
     static void UNIQUE_SYMBOL(_test_case_)()
 
-namespace dhagedorn::static_test {
+namespace dhagedorn {
+namespace static_test {
 
 namespace detail {
 
@@ -192,9 +194,11 @@ struct test_case;
 struct test_suite {
     std::string file;
     unsigned long line;
-    std::string namespace_name;
+    std::string symbol;
     std::string name;
     std::string description;
+
+    std::vector<std::reference_wrapper<const test_case>> test_cases;
 
     std::string to_string() const {
         detail::putter put;
@@ -207,6 +211,8 @@ struct test_suite {
 
         return put.str();
     }
+
+    void add_case(test_case &test_case) { test_cases.push_back(test_case); }
 
     static test_suite from_string(const std::string &value) {
         detail::getter get{value};
@@ -225,13 +231,12 @@ struct test_suite {
         }
     }
 
-    std::vector<test_case *> test_cases() {
-        for (auto &tc; _test_cases) {
-        }
+    bool operator==(const test_suite &rhs) const {
+        return file == rhs.file && line == rhs.line;
     }
 };
 
-inline std::vector<test_suite> _test_suites;
+extern std::vector<test_suite> _test_suites;
 
 struct test_case {
     std::string file;
@@ -258,6 +263,10 @@ struct test_case {
         return put.str();
     }
 
+    std::string test_suite_symbol() const {
+        return detail::namespace_name(detailed_name);
+    }
+
     static test_case from_string(const std::string &value) {
         detail::getter get{value};
 
@@ -276,20 +285,21 @@ struct test_case {
             throw exception;
         }
     }
-
-    test_suite *suite() const {
-        auto enclosing_namespace = detail::namespace_name(detailed_name);
-
-        for (auto &ts : _test_suites) {
-            if (ts.symbol == enclosing_namespace) {
-                return &ts;
-            }
-        }
-
-        return nullptr;
-    }
 };
 
-inline std::vector<test_case> _test_cases;
+extern std::vector<test_case> _test_cases;
 
-} // namespace dhagedorn::static_test
+} // namespace static_test
+
+} // namespace dhagedorn
+
+namespace std {
+template <>
+struct hash<dhagedorn::static_test::test_suite> {
+    std::size_t
+    operator()(dhagedorn::static_test::test_suite const &suite) const {
+        return std::hash<std::string>{}(suite.file
+                                        + std::to_string(suite.line));
+    }
+};
+} // namespace std

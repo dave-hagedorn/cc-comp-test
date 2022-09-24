@@ -37,11 +37,12 @@ def _make_includes_rel_to_rundir(ctx, command_line):
 
     return [arg.replace(ctx.bin_dir.path + "/", "") for arg in command_line]
 
-def _find_cc_info(ctx, cc_source_file, cc_deps):
+def _find_cc_info(ctx, cc_source_file, cc_deps, copts):
     """Return info about how to compile a single source file and its dependencies
 
     cc_source_file:     The single source file being compiled
     cc_deps:            Its deps - likely just other cc_library()'s
+    copts:              Any additional copts to use when compiling this test source
     """
     cc_toolchain = find_cpp_toolchain(ctx)
     source_file = ctx.file.src
@@ -71,7 +72,7 @@ def _find_cc_info(ctx, cc_source_file, cc_deps):
     c_compile_variables = cc_common.create_compile_variables(
         feature_configuration = feature_configuration,
         cc_toolchain = cc_toolchain,
-        user_compile_flags = ctx.fragments.cpp.copts + ctx.fragments.cpp.cxxopts,
+        user_compile_flags = ctx.fragments.cpp.copts + ctx.fragments.cpp.cxxopts + copts,
         source_file = cc_source_file.path,
         output_file = "dummy_output.o",
         include_directories = deps_ctx.includes,
@@ -123,8 +124,9 @@ def _impl_runner_cc_comp_test(ctx):
     test_runner = ctx.executable._test_runner
     cc_source_file = ctx.file.src
     cc_deps = ctx.attr.deps + ctx.attr._needed_libs
+    copts = ctx.attr.copts
 
-    cc_info = _find_cc_info(ctx, cc_source_file = cc_source_file, cc_deps = cc_deps)
+    cc_info = _find_cc_info(ctx, cc_source_file = cc_source_file, cc_deps = cc_deps, copts = copts)
 
     # See https://bazel.build/reference/test-encyclopedia#test-sharding
     # Can shard runs at runtime - threading
@@ -171,6 +173,9 @@ _runner_cc_comp_test = rule(
             allow_single_file = True,
             doc = "The source file containing compile time assert test cases",
         ),
+        "copts": attr.string_list(
+            doc = "copts - same as for other cc_* rules",
+        ),
         "deps": attr.label_list(
             providers = [CcInfo],
             doc = "Dependencies of this test - usually other cc_library()'s",
@@ -208,7 +213,7 @@ _runner_cc_comp_test = rule(
     test = True,
 )
 
-def cc_comp_test(name, src = None, deps = []):
+def cc_comp_test(name, src = None, copts=[], deps = []):
     """Define a C++ compile time test
 
     Just like cc_test() but for testing compile time assertions like static_assert().
@@ -239,5 +244,6 @@ def cc_comp_test(name, src = None, deps = []):
         name = name,
         src = src,
         deps = deps,
+        copts = copts,
         info_binary = info_binary,
     )
