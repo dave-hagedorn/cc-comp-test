@@ -213,7 +213,7 @@ _runner_cc_comp_test = rule(
     test = True,
 )
 
-def cc_comp_test(name, src = None, copts=[], deps = []):
+def cc_comp_test(name, src = None, copts = [], deps = []):
     """Define a C++ compile time test
 
     Just like cc_test() but for testing compile time assertions like static_assert().
@@ -228,6 +228,7 @@ def cc_comp_test(name, src = None, copts=[], deps = []):
     Args:
         name:   Will be used for name of _runner_cc_comp_test rule
         src:    The source file containing compile time test cases.  Optional - if omitted, '{name}.cc' is used instead
+        copts:  C flags - same as copts in cc_binary and other rules
         deps:   Dependencies of src - other cc_library()'s, etc.  Usually the library you are writing compile time test cases for
     """
     src = src if src else name + ".cc"

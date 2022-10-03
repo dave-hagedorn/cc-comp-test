@@ -8,7 +8,7 @@ JUNIT="${XML_OUTPUT_FILE:-test.xml}"
 extra_flags=()
 
 # Bazel will set TEST_TMPDIR
-if [[ "$TEST_TMPDIR" != "" ]]; then
+if [[ "${TEST_TMPDIR-}" != "" ]]; then
     extra_flags+=("-t", "$TEST_TMPDIR")
 fi
 

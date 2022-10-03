@@ -1,7 +1,6 @@
 cc_library(
     name = "comp_test",
     srcs = [
-        "comp_test.cc",
     ],
     hdrs = [
         "comp_test.hh",

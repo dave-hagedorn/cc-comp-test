@@ -33,7 +33,7 @@ time="1"></testcase>
 
 class junit {
 public:
-    auto write(const std::vector<test_suite_run> &runs, bfs::path path) {
+    auto write(const std::vector<test_suite_run> &results, bfs::path path) {
 
         FILE *fout = fopen(path.c_str(), "wb");
 
@@ -56,9 +56,9 @@ public:
 
         p.OpenElement("testsuites");
 
-        for (const auto &suite : runs) {
-            _start_suite(suite, p);
-        }
+        ranges::for_each(results, [&](const auto &suite_run) {
+            _start_suite(suite_run, p);
+        });
 
         p.CloseElement();
 
@@ -74,17 +74,19 @@ private:
                / 1000;
     };
 
-    void _start_suite(const test_suite_run &run, tinyxml2::XMLPrinter &p) {
+    void _start_suite(const test_suite_run &suite_run,
+                      tinyxml2::XMLPrinter &p) {
         p.OpenElement("testsuite");
 
-        p.PushAttribute("name", run.test_suite.name.c_str());
-        p.PushAttribute("tests", run.test_suite.test_cases.size());
-        p.PushAttribute("failures", run.count(test_case_result::compiled));
-        p.PushAttribute("errors",
-                        run.count(test_case_result::other_compile_failure));
-        p.PushAttribute("time", _sec(run.duration()));
+        p.PushAttribute("name", suite_run.test_suite.name.c_str());
+        p.PushAttribute("tests", suite_run.case_runs.size());
+        p.PushAttribute("failures",
+                        suite_run.count(test_case_result::compiled));
+        p.PushAttribute(
+            "errors", suite_run.count(test_case_result::other_compile_failure));
+        p.PushAttribute("time", _sec(suite_run.duration()));
 
-        for (auto &tc : run.case_runs) {
+        for (auto &tc : suite_run.case_runs) {
             _add_tc(tc, p);
         }
 

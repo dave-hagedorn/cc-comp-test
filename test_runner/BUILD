@@ -8,7 +8,6 @@ cc_binary(
         "log.hh",
         "test_case_run.hh",
         "test_runner.cc",
-        "test_suite.hh",
         "test_suite_run.hh",
         "util.hh",
     ],

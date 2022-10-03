@@ -23,7 +23,6 @@
 #include "lib/comp_test.hh"
 #include "log.hh"
 #include "test_case_run.hh"
-#include "test_suite.hh"
 #include "test_suite_run.hh"
 
 namespace dhagedorn::static_tester::priv {
@@ -57,7 +56,9 @@ struct args {
             "colour",
             colour,
             "compiler_args",
-            compiler_args);
+            compiler_args,
+            "info binary",
+            info_binary);
     }
 };
 
@@ -180,8 +181,7 @@ auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
         tc.expected_assert_message,
         tc.file,
         tc.line,
-        "",
-        // tc.test_suite() == "" ? ""s : tc.test_suite() + "::",
+        tc.test_suite_symbol() == "" ? ""s : tc.test_suite_symbol() + "::",
         tc.symbol);
 
     c.append(runner);
@@ -201,16 +201,25 @@ auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
     };
 }
 
-auto run_tests(
-    const args &args,
-    const std::unordered_map<std::string, static_test::test_case> &cases) {
+using suites_with_cases
+    = std::unordered_map<static_test::test_suite,
+                         std::vector<static_test::test_case>>;
 
-    auto runs
-        = cases | rv::transform([](auto &tc) { return tc.second; })
-          | rv::transform([&](const auto &tc) { return run_case(args, tc); })
-          | ranges::to<std::vector>();
+auto run_tests(const args &args, const suites_with_cases &suites) {
+    std::vector<test_suite_run> suite_runs;
 
-    return runs;
+    for (const auto &[suite, cases] : suites) {
+        auto suite_run = test_suite_run{.test_suite = suite};
+
+        for (const auto &tc : cases) {
+            auto result = run_case(args, tc);
+            suite_run.case_runs.push_back(result);
+        }
+
+        suite_runs.push_back(suite_run);
+    }
+
+    return suite_runs;
 }
 
 auto get_tests(const args &args) {
@@ -231,32 +240,55 @@ auto get_tests(const args &args) {
 
     log("stdout", "output", output.stdout);
 
-    auto suites_by_symbol
+    auto to_vector = r::to<std::vector>();
+
+    auto suites
         = output.stdout | filter_and_strip("test_suite:")
           | rv::transform(&dhagedorn::static_test::test_suite::from_string)
-          | rv::transform([](const auto &suite) {
-                return std::pair{
-                    suite.symbol,
-                    suite,
-                };
-            })
-          | r::to<std::unordered_map>();
+          | to_vector;
 
-    auto cases_by_suite_symbol
+    auto cases
         = output.stdout | filter_and_strip("test_case:")
           | rv::transform(&dhagedorn::static_test::test_case::from_string)
-          | rv::transform([](const auto &tc) {
-                return std::pair{tc.test_suite_symbol(), tc};
-            })
-          | r::to<std::unordered_map>();
+          | to_vector;
 
-    return std::tuple{suites_by_symbol, cases_by_suite_symbol};
+    return std::tuple{suites, cases};
 }
 
-auto write_junit(const args &args, const std::vector<testcase_run> &runs) {
+auto connect(std::vector<dhagedorn::static_test::test_suite> &suites,
+             std::vector<dhagedorn::static_test::test_case> &cases) {
+
+    // "no suite" case
+    suites.push_back({
+        .file = cases.size() > 0 ? cases[0].file : "no file -  no cases",
+        .line = 0,
+        .symbol = "",
+        .name = "top_level",
+        .description = "top level testcases without a suite",
+    });
+
+    auto suites_by_symbol = suites | rv::transform([](auto &suite) {
+                                return std::pair{suite.symbol, suite};
+                            })
+                            | r::to<std::unordered_map>();
+
+    auto map = suites | rv::transform([](auto &suite) {
+                   return std::pair{
+                       suite, std::vector<dhagedorn::static_test::test_case>{}};
+               })
+               | r::to<std::unordered_map>();
+
+    for (auto &tc : cases) {
+        map.at(suites_by_symbol.at(tc.test_suite_symbol())).push_back(tc);
+    }
+
+    return map;
+}
+
+auto write_junit(const args &args, const std::vector<test_suite_run> &results) {
     if (args.junit) {
         junit j;
-        // j.write(runs, *args.junit);
+        j.write(results, *args.junit);
     }
 }
 
@@ -276,12 +308,26 @@ int main(int argc, char **argv) {
 
     auto [suites, cases] = get_tests(args);
 
-    auto case_runs = run_tests(args, cases);
+    dhagedorn::static_tester::priv::log(
+        "test info",
+        "suites",
+        suites | ranges::views::transform([](auto &suite) {
+            return suite.symbol;
+        }),
+        "cases",
+        cases | ranges::views::transform([](auto &tc) {
+            return tc.test_suite_symbol();
+        }));
 
-    write_junit(args, case_runs);
+    auto by_suite = dhagedorn::static_tester::priv::connect(suites, cases);
 
-    auto passed
-        = ranges::all_of(case_runs, [](auto &run) { return run.passed(); });
+    auto runs_by_suite
+        = dhagedorn::static_tester::priv::run_tests(args, by_suite);
+
+    write_junit(args, runs_by_suite);
+
+    auto passed = ranges::all_of(
+        runs_by_suite, [](auto &suite_run) { return suite_run.all_passed(); });
 
     return passed ? 0 : 1;
 }

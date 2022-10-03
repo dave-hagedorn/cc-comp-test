@@ -40,7 +40,7 @@ struct test_suite_args {
 #define TEST_SUITE(...)                                                        \
     static auto EXPAND_CALL(JOIN, _test_suite_define, __LINE__) = [] {         \
         test_suite_args args{__VA_ARGS__};                                     \
-        dhagedorn::static_test::_test_suites.push_back({                       \
+        dhagedorn::static_test::_test_suites().push_back({                     \
             __FILE__,                                                          \
             __LINE__,                                                          \
             EXPAND_CALL(STRINGIFY, UNIQUE_SYMBOL(_test_suite_)),               \
@@ -62,10 +62,10 @@ struct comp_assert_args {
 }; // namespace comp_assert_args
 
 #define TEST_COMP_ASSERT(...)                                                  \
-    static auto EXPAND_CALL(JOIN, _static_test_define, __LINE__) = [] {        \
+    static auto EXPAND_CALL(JOIN, _comp_test_define, __LINE__) = [] {          \
         comp_assert_args args{__VA_ARGS__};                                    \
         std::string pretty = std::string{__PRETTY_FUNCTION__};                 \
-        dhagedorn::static_test::_test_cases.push_back({                        \
+        dhagedorn::static_test::_test_cases().push_back({                      \
             __FILE__,                                                          \
             __LINE__,                                                          \
             __PRETTY_FUNCTION__,                                               \
@@ -189,16 +189,12 @@ struct opt {
 
 } // namespace detail
 
-struct test_case;
-
 struct test_suite {
     std::string file;
     unsigned long line;
     std::string symbol;
     std::string name;
     std::string description;
-
-    std::vector<std::reference_wrapper<const test_case>> test_cases;
 
     std::string to_string() const {
         detail::putter put;
@@ -211,8 +207,6 @@ struct test_suite {
 
         return put.str();
     }
-
-    void add_case(test_case &test_case) { test_cases.push_back(test_case); }
 
     static test_suite from_string(const std::string &value) {
         detail::getter get{value};
@@ -235,8 +229,6 @@ struct test_suite {
         return file == rhs.file && line == rhs.line;
     }
 };
-
-extern std::vector<test_suite> _test_suites;
 
 struct test_case {
     std::string file;
@@ -287,7 +279,15 @@ struct test_case {
     }
 };
 
-extern std::vector<test_case> _test_cases;
+inline std::vector<test_case> &_test_cases() {
+    static std::vector<test_case> store;
+    return store;
+}
+
+inline std::vector<test_suite> &_test_suites() {
+    static std::vector<test_suite> store;
+    return store;
+}
 
 } // namespace static_test
 

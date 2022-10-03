@@ -22,18 +22,8 @@ TEST_SUITE("numbers", "number cases") {
 
     TEST_COMP_ASSERT(
         "to_string", "only works on numbers", "type not supported") {
-        //   to_string(3);
+        to_string("");
     }
-}
-
-TEST_COMP_ASSERT(.thing = "to_string",
-                 .will = "only work with numbers",
-                 .assert_with = "type not supported") {}
-
-TEST_COMP_ASSERT(.thing = "to_string",
-                 .will = "only works on numbers",
-                 .assert_with = "type not supported") {
-    to_string(3);
 }
 
 TEST_COMP_ASSERT("to_string", "only works on numbers", "type not supported") {
@@ -42,8 +32,4 @@ TEST_COMP_ASSERT("to_string", "only works on numbers", "type not supported") {
 
 TEST_COMP_ASSERT("to_string", "only works on numbers", "type not supported") {
     to_string(TEST_INFO::object);
-}
-
-TEST_COMP_ASSERT("to_string", "only works on numbers", "mismatch") {
-    //    static_assert(TEST_INFO::object == "to_strings", "mismatch");
 }

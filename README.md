@@ -53,7 +53,6 @@ auto picky_to_string(T &&value) {
 }
 
 // Test cases can be grouped inside test suites
-// Test suites themselves can be nested inside other test suites
 TEST_SUITE("numbers") {
 
     TEST_COMP_ASSERT("to_string", "only allows numbers", "only numbers are supported") {
@@ -106,14 +105,12 @@ bazel test :testing_numbers
 
 Supported test definitions
 
-| name                                       | meaning                                                                                                                        |
-|--------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| TEST_SUITE(name)                           | Use to group test cases.  Can be nested.  Symbols defined within a `TEST_SUITE` are scoped to that suite and any nested suites |
-| TEST_COMP_ASSERT(thing, will, assert_with) | Define a test case with code that must fail a `static_assert` as `static_assert(<evaluate-to-false>, "assert_with")`           |
+| name                                       | meaning                                                                                                              |
+|--------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| TEST_SUITE(name)                           | Use to group test cases.  Symbols defined within a `TEST_SUITE` are scoped to that suite only                        |
+| TEST_COMP_ASSERT(thing, will, assert_with) | Define a test case with code that must fail a `static_assert` as `static_assert(<evaluate-to-false>, "assert_with")` |
 
-Most test functions/macros accept named arguments as C++20 designated initializers.  This seems to work OK with clangd-based completion so I decided to kee it.
-
-
+Test functions/macros accept named arguments as C++20 designated initializers.  This seems to work OK with clangd-based completion so I decided to kee it.
 
 ## JUnit Output (test.xml)
 
@@ -121,8 +118,8 @@ Each test run will emit a test.xml in JUnit format, including some extra attribu
 
 Each case can pass, fail, or error, with the meaning of this depending on the test case type
 
-| test case type   | pass                                                        | fail                                                | error                                   |
-|------------------|-------------------------------------------------------------|-----------------------------------------------------|-----------------------------------------|
+| test case type   | pass                                                         | fail                                                 | error                                   |
+|------------------|--------------------------------------------------------------|------------------------------------------------------|-----------------------------------------|
 | TEST_COMP_ASSERT | compilation failed with the expected `static_assert` message | compilation succeeded - `static_assert` did not fire | compilation failed for any other reason |
 
 
@@ -130,12 +127,12 @@ Each case can pass, fail, or error, with the meaning of this depending on the te
 
 If you use VSCode and are OK to work in a [Dev Container](https://code.visualstudio.com/docs/remote/containers), this is the recommended approach.
 
-As usual just open this folder in VSCode and when prompted to open inside a Dev Container.
+As usual just open this folder in VSCode and when prompted, reopen inside the Dev Container.
 
 The recommended extensions such as clangd for code navigation will be installed.
 
 As much as possible workspace settings are configured in `.vscode/settings.json` rather than `.devcontainer/devcontainer.json`, this way settings are applied regardless of
-whether this workspce is open inside a Dev Container.
+whether this workspce is open inside a Dev Container or not.
 
 
 # Coming Features - Vote!
@@ -156,77 +153,30 @@ This is currently focused on static_assert statements, but will be expanded to s
 - [ ] Parameterized tests - still TBD - but ability to run a test case across multiple types and/or compile-time values (somehow)
 
 
-
 # How it Works
 
-Each TEST_SUITE is just a namespace
+Assuming your test suites and cases for one `cc_comp_test` target are defineed in a `test.cc`, 
+running tests in `test.cc` involves the following.
+
+First, the test code must be built.
+
+1. For each test case in `test.cc` the `TEST_COMP_ASSERT` macro creates a unique, templated, test function
+2.  `TEST_COMP_ASSERT` also generates info about each test case's attributes - it's name, the test case object/class and verb, etc.
+3. `test.cc` is linked with a predefined `main.cc` that uses this info to print out all the test cases and their attributes
+   * This is the `info binary` - one of the two outputs of any `cc_comp_test` target
+4. Next, another binary that is responsible for running all of the cases in `test.cc` is built
+   * This is the `test runner` - this is the second output of any `cc_comp_test` target
+   * Unlike the `info binary` this is only built once, and used across all `cc_comp_test` targets
+
+After all of the prerequisites have been built the tests can be run:
+
+1.  The `test runner` now runs the `info binary` and captures the info it prints out - the test cases and their attributes
+2.  The `test runner` parses this info to build a list of the cases in `test.cc` - the test function names and other case attributes
+3.  For each case, the `test runner` will do a test compile:
+    1.  It generates a `main()` function that instantiates the cases's templated test function
+    2.  The runner then copies `test.cc` to a new file `test'.cc` (this is not the actual name used), appending this new `main()` function
+    3.  The runner then tries to compile `test'.cc`
+    4.  If the compilation fails with an error message matching the expected `static_assert()` message for this case, the test case has passed
+    5.  If there is another compilation error or the compilation passes, the case is considered failed
 
 
-There are four pieces that go into each cc_comp_test build:
-
-1.  Your unit test - ex, `test.cc`
-1.  The comp test library `lib:comp_test` - this provides TEST_SUITE, TEST_COMP_ASSEERT, etc.
-1.  An "info binary" that is run at test execution to provide info about the test cases in `test.cc`: `info_binary:info_binary_main`
-1.  A test runner `test_runner:test_runner` that is run at test time to execute the test cases in test.cc - as reported by `info_binary`
-
-At build time, `cc_comp_test`:
-
-* Builds `test.cc` and `info_binary:info_binary_main` into the output info binary `<name>.info`
-* Builds test runner `test_runner:test_runner` as output file `test_runner`
-* Generates a small wrapper around `test_runner`, `test.sh` - this just encapsulates args and info needed to later invoke `test_runner`
-
-At test execution, `test_runner`:
-
-* Invokes `<name>.info` to get needed info about the test cases defined in `test.cc`
-* For each test case, compiles `test.cc` with that specific test case enabled, ensuring any required deps from `cc_comp_test` as well as the implicit dep `lib:comp_test` are provided during compilation
-  * Note - this is a compile only step (`-c`), nothing is linked or run
-* Interprets the result of the compilation - whether the compilation failed with the required static_assert, failed for unexpected reasons, compiled when it should not have, etc.
-* Emits a JUnit result file test.xml - this follows the JUnit spec and also adds some extra attributes Bazel seems to use
-
-To allow this, the runfiles for the test runner contain all public headers of any deps listed in your `cc_comp_test` and also `lib:comp_test`,
-as well as all of the files defined by the `cc_toolchain` being used.  These are required as test execution literally involves
-compiling your `test.cc`, so all required dependencies and toolchain files must be present during test execution.
-
-
-Assuming your tests are written in `my_test.cc` and you have defined the tests as
-
-```python
-cc_comp_test(
-    name = "my_test",
-)
-```
-
-`test_runn
-
-`my_test.cc` and `info_binary_main.cc` are built into the info binary my_test.info (using cc_binary)
-
-This outputs info about the test cases defined in my_test.cc so they can be run
-
-
-2.  `test_runner.cc`
-
-
-
-```mermaid
-flowchart TD
-    style my_test.cc fill:blue
-    cc1[cc_binary]
-    my_test.cc --> cc1
-    info_binary_main.cc --> cc1
-    cc1 --> my_test.info
-
-    cc2[cc_binary]
-    test_runner.cc --> cc2
-    cc2 --> test_runner
-
-    my_test.info --> my_test.sh
-    test_runner --> my_test.sh
-    my_test.cc --> my_test.sh
-
-    my_test.sh --> run[run tests]
-```
-wrapped in template function
-instantiate function per case
-test runner compiles each case with this
-info binary compiles your test cases to binary and outputs info about these fo test runner
-needs chart/diagram

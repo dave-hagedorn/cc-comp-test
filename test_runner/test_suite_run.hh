@@ -1,10 +1,10 @@
 #pragma once
 
+#include <chrono>
+
 #include "range/v3/all.hpp"
 
 #include "test_case_run.hh"
-#include "test_suite.hh"
-#include <chrono>
 
 namespace dhagedorn::static_tester::priv {
 
@@ -14,7 +14,7 @@ namespace r = ranges;
 using namespace std::chrono_literals;
 
 struct test_suite_run {
-    test_suite test_suite;
+    static_test::test_suite test_suite;
     std::vector<testcase_run> case_runs;
 
     auto count(test_case_result with_result) const {
