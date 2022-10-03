@@ -34,10 +34,10 @@
     // Uncomment the next line to run commands after the container is created - for example installing curl.
     // "postCreateCommand": "apt-get update && apt-get install -y curl",
     "postStartCommand": "$HOME/bin/post-start.sh",
-
     "mounts": [
-        // Host's home, to source .zshrc, .bashrc, etc - make remote shell cozy
-        "source=${localEnv:HOME},target=/home/host,type=bind",
+        // Source .zshrc, .bashrc, etc - make remote shell cozy
+        "source=${localEnv:HOME}/.zshrc,target=/home/dev/.zshrc,type=bind",
+        "source=${localEnv:HOME}/.bashrc,target=/home/dev/.bashrc,type=bind",
         // Persist any tool configs
         "source=devcontainer-config,target=/home/dev/.config,type=volume",
         // Persist global git config

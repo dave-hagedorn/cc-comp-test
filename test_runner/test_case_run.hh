@@ -16,14 +16,19 @@ namespace dhagedorn::static_tester::priv {
 
 using namespace std::string_literals;
 
-enum class test_case_result {
+enum class test_case_action {
     skipped, // TODO
     did_static_assert,
     other_compile_failure,
     compiled,
 };
 
-struct testsuite_run {};
+enum class test_case_result {
+    pass,
+    fail,
+    error,
+}
+
 
 struct testcase_run {
     static_test::test_case tc;
@@ -60,7 +65,13 @@ struct testcase_run {
         return test_case_result::other_compile_failure;
     }
 
-    auto passed() { return result() == test_case_result::did_static_assert; }
+    auto passed() const { 
+        const auto res = result();
+
+        return 
+        tc.type == static_test::test_type::MUST_STATIC_ASSERT && result() == test_case_result::did_static_assert
+        || tc.type == static_test::test_type::MUST_COMPILE && result() == test_case_result::compiled;
+    }
 };
 
 } // namespace dhagedorn::static_tester::priv

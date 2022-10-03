@@ -6,6 +6,7 @@
   - [comp_test.hh](#comp_testhh)
   - [JUnit Output (test.xml)](#junit-output-testxml)
 - [Hacking/Contributing](#hackingcontributing)
+  - [Dev Continer](#dev-continer)
 - [Coming Features - Vote!](#coming-features---vote)
 - [How it Works](#how-it-works)
 
@@ -125,15 +126,25 @@ Each case can pass, fail, or error, with the meaning of this depending on the te
 
 # Hacking/Contributing
 
+
+## Dev Continer
+
 If you use VSCode and are OK to work in a [Dev Container](https://code.visualstudio.com/docs/remote/containers), this is the recommended approach.
 
-As usual just open this folder in VSCode and when prompted, reopen inside the Dev Container.
+Just open this folder in VSCode and when prompted, reopen inside the Dev Container.
 
-The recommended extensions such as clangd for code navigation will be installed.
+The recommended extensions such as clangd for code navigation will be installed. 
+The clangd extension will ask you if it should download the clangd binary - just say yes.
 
-As much as possible workspace settings are configured in `.vscode/settings.json` rather than `.devcontainer/devcontainer.json`, this way settings are applied regardless of
-whether this workspce is open inside a Dev Container or not.
+As much as possible workspace settings are configured in `.vscode/settings.json` rather than `.devcontainer/devcontainer.json`, this way settings are applied regardless of whether this workspce is open inside a Dev Container or not.
 
+:information_source: Note that devcontainer.json mounts some files from your $HOME into the container:
+
+* ~/.gitconfig, so Git still works in the VS Code terminal, and especially that your user.email config is correct
+* ~/.zshrc and/or ~/.bashrc so your shell is familiar
+* ~/.bash_history and/or ~/.zhistory so commands are kept in your history file
+
+If this makes you uncomfortable you can uncomment these lines in [devcontainer.json](.devcontainer/devcontainer.json)
 
 # Coming Features - Vote!
 

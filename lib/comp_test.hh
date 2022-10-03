@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <type_traits>
 
 #ifdef _MSC_VER
 #define __PRETTY_FUNCTION__ __FUNCSIG__
@@ -29,8 +30,6 @@ struct required {
 
     T value;
 };
-
-// TODO  - NAME
 
 struct test_suite_args {
     required<std::string> name;
@@ -61,7 +60,7 @@ struct comp_assert_args {
     required<std::string> assert_with;
 }; // namespace comp_assert_args
 
-#define TEST_COMP_ASSERT(...)                                                  \
+#define IMPL(TYPE, ...)                                                  \
     static auto EXPAND_CALL(JOIN, _comp_test_define, __LINE__) = [] {          \
         comp_assert_args args{__VA_ARGS__};                                    \
         std::string pretty = std::string{__PRETTY_FUNCTION__};                 \
@@ -73,11 +72,15 @@ struct comp_assert_args {
             std::move(args.thing),                                             \
             std::move(args.will),                                              \
             std::move(args.assert_with),                                       \
+            TYPE \
         });                                                                    \
         return 0;                                                              \
     }();                                                                       \
     template <typename TEST_INFO>                                              \
     static void UNIQUE_SYMBOL(_test_case_)()
+
+#define TEST_COMP_ASSERT(...)   IMPL(dhagedorn::static_test::test_type::MUST_STATIC_ASSERT, __VA_ARGS__)
+#define TEST_COMPILES(...)   IMPL(dhagedorn::static_test::test_type::MUST_COMPILE, __VA_ARGS__)
 
 namespace dhagedorn {
 namespace static_test {
@@ -181,13 +184,26 @@ inline std::string namespace_name(const std::string &symbol) {
     return "";
 }
 
-template <typename T>
-struct opt {
-    bool set;
-    T &value;
+} // namespace detail
+
+enum class test_type {
+    MUST_STATIC_ASSERT,
+    MUST_COMPILE,
 };
 
-} // namespace detail
+using test_type_raw = std::underlying_type<test_type>::type;
+
+constexpr inline test_type_raw to_number(test_type value) {
+    return static_cast<test_type_raw>(value);
+}
+
+inline test_type from_number(test_type_raw value) {
+    switch (value) {
+        case to_number(test_type::MUST_STATIC_ASSERT): return test_type::MUST_STATIC_ASSERT;
+        case to_number(test_type::MUST_COMPILE): return test_type::MUST_COMPILE;
+    }
+}
+
 
 struct test_suite {
     std::string file;
@@ -240,6 +256,7 @@ struct test_case {
     std::string object;
     std::string verb;
     std::string expected_assert_message;
+    test_type type;
 
     std::string to_string() const {
         detail::putter put;
@@ -251,6 +268,7 @@ struct test_case {
         put(object);
         put(verb);
         put(expected_assert_message);
+        put(to_number(type));
 
         return put.str();
     }
@@ -271,6 +289,7 @@ struct test_case {
                 get(),
                 get(),
                 get(),
+                from_number(std::stoul(get())),
             };
         } catch (std::exception &exception) {
             std::cerr << exception.what() << std::endl;

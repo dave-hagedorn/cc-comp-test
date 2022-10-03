@@ -5,6 +5,7 @@ cc_library(
     hdrs = [
         "comp_test.hh",
     ],
+    copts = ["-std=c++11"],
     include_prefix = "comp_test",
     visibility = ["//visibility:public"],
 )

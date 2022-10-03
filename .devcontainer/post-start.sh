@@ -37,27 +37,8 @@ error() {
     log "$*"
 }
 
-link-host-config() {
-    local -r HOST_FILES=(
-        .zshrc
-        .bashrc
-    )
-
-    for file in "${HOST_FILES[@]}"; do
-        local src="$HOST_HOME/$file"
-        local dst="$HOME/$file"
-
-        if [ -f "$src" ]; then
-            info "found host's config $file you might want in dev env -> linking to $dst"
-            rm -f "$dst"
-            ln -s "$src" "$dst"
-        fi
-    done
-}
-
 main() {
-    info "devcontainer post-start"
-    link-host-config
+    info "done"
 }
 
 main "$@"

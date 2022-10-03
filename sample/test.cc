@@ -20,7 +20,7 @@ TEST_SUITE("numbers", "number cases") {
         to_string("invalid value");
     }
 
-    TEST_COMP_ASSERT(
+    TEST_COMPILES(
         "to_string", "only works on numbers", "type not supported") {
         to_string("");
     }
