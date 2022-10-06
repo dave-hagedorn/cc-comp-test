@@ -35,6 +35,7 @@ struct compiler_diagnostic {
     unsigned long column;
     severity sev;
     std::string message;
+    std::optional<std::string> static_assert_msg;
 
     inline const static std::unordered_map<std::string, severity>
         severity_words{
@@ -61,7 +62,32 @@ struct compiler_diagnostic {
                 ? severity_words.at(match[4])
                 : severity::unknown,
             match[5],
+            find_static_assert(line),
         }};
+    }
+
+private:
+    static std::optional<std::string>
+    find_static_assert(const std::string &line) {
+        const static std::vector<std::regex> tests{
+            // clang: <source>:3:1: error: static_assert failed "msg"
+            std::regex{R"_(static_assert failed "([^"]+)")_"},
+            // gcc: <source>:3:15: error: static assertion failed: msg
+            std::regex{R"_(static assertion failed: (.*))_"},
+            // msvc: <source>(3): error C2338: static_assert failed: 'msg'
+            std::regex{R"_(static_assert failed: '([^']+)')_"},
+        };
+
+        for (auto &re : tests) {
+            std::smatch m;
+            std::regex_match(line, m, re);
+
+            if (m.ready()) {
+                return m[1].str();
+            }
+        }
+
+        return {};
     }
 };
 
@@ -72,6 +98,18 @@ struct compile_result {
     executable_output compile_output;
     std::vector<compiler_diagnostic> diagnostics;
     bool compiled;
+
+    bool has_static_assert(const std::string &msg) const {
+        return r::any_of(diagnostics, [&](auto &diag) {
+            return diag.static_assert_msg == msg;
+        });
+    }
+
+    bool did_static_assert() const {
+        return r::any_of(diagnostics, [&](auto &diag) {
+            return diag.static_assert_msg.has_value();
+        });
+    }
 };
 
 class compiler {

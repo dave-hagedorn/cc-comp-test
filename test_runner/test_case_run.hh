@@ -27,8 +27,8 @@ enum class test_case_result {
     pass,
     fail,
     error,
-}
-
+    skipped,
+};
 
 struct testcase_run {
     static_test::test_case tc;
@@ -40,37 +40,33 @@ struct testcase_run {
             return test_case_result::skipped; // TODO
         }
 
-        auto compiled = compiler_output->compiled;
-        auto did_assert
-            = ranges::any_of(compiler_output->diagnostics, [this](auto &diag) {
-                  auto is_error = diag.sev == severity::error;
-                  auto is_static_assert
-                      = diag.message.find("static_assert") != std::string::npos;
-
-                  auto assert_matches
-                      = diag.message.find(tc.expected_assert_message)
-                        != std::string::npos;
-
-                  return is_error && is_static_assert && assert_matches;
-              });
-
-        if (compiled) {
-            return test_case_result::compiled;
+        switch (tc.type) {
+            case static_test::test_type::MUST_COMPILE:
+                return when(compiler_output->compiled,
+                            test_case_result::pass,
+                            compiler_output->did_static_assert(),
+                            test_case_result::fail,
+                            test_case_result::error);
+            case static_test::test_type::MUST_STATIC_ASSERT:
+                return when(compiler_output->has_static_assert(
+                                tc.expected_assert_message),
+                            test_case_result::pass,
+                            compiler_output->compiled,
+                            test_case_result::fail,
+                            test_case_result::error);
         }
-
-        if (did_assert) {
-            return test_case_result::did_static_assert;
-        }
-
-        return test_case_result::other_compile_failure;
     }
 
-    auto passed() const { 
-        const auto res = result();
-
-        return 
-        tc.type == static_test::test_type::MUST_STATIC_ASSERT && result() == test_case_result::did_static_assert
-        || tc.type == static_test::test_type::MUST_COMPILE && result() == test_case_result::compiled;
+    std::string fail_or_error_message() const {
+        switch (tc.type) {
+            case static_test::test_type::MUST_COMPILE:
+                return "test case must compile and did not";
+                break;
+            case static_test::test_type::MUST_STATIC_ASSERT:
+                return fmt::format(
+                    R"_(test case must static_assert(false, "{}"))_",
+                    tc.expected_assert_message);
+        }
     }
 };
 

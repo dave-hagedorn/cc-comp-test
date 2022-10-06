@@ -17,14 +17,22 @@ struct test_suite_run {
     static_test::test_suite test_suite;
     std::vector<testcase_run> case_runs;
 
-    auto passed() {
-        return r::count_if(case_runs, [](const auto& run) {
-            return run.passed();
+    auto passed() const {
+        return r::count_if(case_runs, [](const auto &run) {
+            return run.result() == test_case_result::pass;
         });
     }
 
-    auto failed() {
-        return case_runs.size() - passed();
+    auto failed() const {
+        return r::count_if(case_runs, [](const auto &run) {
+            return run.result() == test_case_result::fail;
+        });
+    }
+
+    auto errors() const {
+        return r::count_if(case_runs, [](const auto &run) {
+            return run.result() == test_case_result::error;
+        });
     }
 
     auto duration() const {

@@ -326,8 +326,9 @@ int main(int argc, char **argv) {
 
     write_junit(args, runs_by_suite);
 
-    auto passed = ranges::all_of(
-        runs_by_suite, [](auto &suite_run) { return suite_run.all_passed(); });
+    auto passed = ranges::all_of(runs_by_suite, [](auto &suite_run) {
+        return suite_run.failed() == 0 && suite_run.errors() == 0;
+    });
 
     return passed ? 0 : 1;
 }

@@ -33,7 +33,7 @@ time="1"></testcase>
 
 class junit {
 public:
-    auto write(const std::vector<test_suite_run> &results, bfs::path path) {
+    auto write(const std::vector<test_suite_run> &runs, bfs::path path) {
 
         FILE *fout = fopen(path.c_str(), "wb");
 
@@ -56,9 +56,9 @@ public:
 
         p.OpenElement("testsuites");
 
-        ranges::for_each(results, [&](const auto &suite_run) {
-            _start_suite(suite_run, p);
-        });
+        for (const auto &suite : runs) {
+            _start_suite(suite, p);
+        }
 
         p.CloseElement();
 
@@ -74,19 +74,16 @@ private:
                / 1000;
     };
 
-    void _start_suite(const test_suite_run &suite_run,
-                      tinyxml2::XMLPrinter &p) {
+    void _start_suite(const test_suite_run &run, tinyxml2::XMLPrinter &p) {
         p.OpenElement("testsuite");
 
-        p.PushAttribute("name", suite_run.test_suite.name.c_str());
-        p.PushAttribute("tests", suite_run.case_runs.size());
-        p.PushAttribute("failures",
-                        suite_run.count(test_case_result::compiled));
-        p.PushAttribute(
-            "errors", suite_run.count(test_case_result::other_compile_failure));
-        p.PushAttribute("time", _sec(suite_run.duration()));
+        p.PushAttribute("name", run.test_suite.name.c_str());
+        p.PushAttribute("tests", run.case_runs.size());
+        p.PushAttribute("failures", run.failed());
+        p.PushAttribute("errors", run.errors());
+        p.PushAttribute("time", _sec(run.duration()));
 
-        for (auto &tc : suite_run.case_runs) {
+        for (auto &tc : run.case_runs) {
             _add_tc(tc, p);
         }
 
@@ -104,33 +101,17 @@ private:
         p.PushAttribute("duration", _sec(run.duration));
         p.PushAttribute("time", _sec(run.duration));
 
-        if (run.result() == test_case_result::other_compile_failure) {
+        if (run.result() == test_case_result::error) {
             p.OpenElement("error");
-            p.PushAttribute(
-                "message",
-                fmt::format(
-                    R"(compile error that was not a static_assert(..., "{}") - see <system-out>)",
-                    run.tc.expected_assert_message)
-                    .c_str());
-            p.CloseElement();
-        } else if (run.result() == test_case_result::compiled) {
+        } else if (run.result() == test_case_result::fail) {
             p.OpenElement("failure");
-            p.PushAttribute(
-                "message",
-                fmt::format(
-                    R"(code compiled - expected static_assert(..., "{}") - see <system-out>)",
-                    run.tc.expected_assert_message)
-                    .c_str());
-            p.CloseElement();
         }
 
-        if (ranges::contains(
-                std::array{
-                    test_case_result::compiled,
-                    test_case_result::other_compile_failure,
-                },
-                run.result())) {
+        p.PushAttribute("message", run.fail_or_error_message().c_str());
+        p.CloseElement();
 
+        if (run.result() == test_case_result::error
+            || run.result() == test_case_result::fail) {
             p.OpenElement("system-out");
             log("out", "output", run.compiler_output->compile_output.stdout);
             p.PushText((run.compiler_output->compile_output.stdout | join('\n'))

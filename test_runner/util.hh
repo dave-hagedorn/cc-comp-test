@@ -52,4 +52,19 @@ private:
     FCT _f;
 };
 
+template <typename TEST, typename RESULT, typename... REST>
+inline constexpr auto when(TEST &&test, RESULT &&result, REST... rest) {
+    if (test) {
+        return result;
+    }
+
+    if constexpr (sizeof...(REST) >= 2) {
+        return when(rest...);
+    } else if constexpr (sizeof...(REST) == 1) {
+        return (rest, ...);
+    } else {
+        static_assert(sizeof...(REST) != 0, "coding error");
+    }
+}
+
 } // namespace dhagedorn::static_tester::priv
