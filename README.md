@@ -13,10 +13,12 @@
 
 # cc_test, but for static_assert
 
-Unit test your C++ `static_assert()`'s in Bazel with `cc_comp_test`
+Unit test your C++ 11+ `static_assert()`'s and other compile time testing for Bazel.
 
-`cc_comp_test` is a Bazel rule to build and run unit tests that validate static_assert behaviour.
+`cc_comp_test` is a Bazel rule to build and run compile time tests.  It works with Bazel alongside your 
+cc_test and other testing rules, and emits JUnit test results.
 
+`cc_comp_test` will work with Clang, GCC, and MSVC using C++11 or newer code.
 
 # Installation
 

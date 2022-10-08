@@ -6,8 +6,8 @@
 #include <regex>
 #include <sstream>
 #include <string>
-#include <vector>
 #include <type_traits>
+#include <vector>
 
 #ifdef _MSC_VER
 #define __PRETTY_FUNCTION__ __FUNCSIG__
@@ -60,27 +60,28 @@ struct comp_assert_args {
     required<std::string> assert_with;
 }; // namespace comp_assert_args
 
-#define IMPL(TYPE, ...)                                                  \
+#define IMPL(TYPE, ...)                                                        \
     static auto EXPAND_CALL(JOIN, _comp_test_define, __LINE__) = [] {          \
         comp_assert_args args{__VA_ARGS__};                                    \
         std::string pretty = std::string{__PRETTY_FUNCTION__};                 \
-        dhagedorn::static_test::_test_cases().push_back({                      \
-            __FILE__,                                                          \
-            __LINE__,                                                          \
-            __PRETTY_FUNCTION__,                                               \
-            EXPAND_CALL(STRINGIFY, UNIQUE_SYMBOL(_test_case_)),                \
-            std::move(args.thing),                                             \
-            std::move(args.will),                                              \
-            std::move(args.assert_with),                                       \
-            TYPE \
-        });                                                                    \
+        dhagedorn::static_test::_test_cases().push_back(                       \
+            {__FILE__,                                                         \
+             __LINE__,                                                         \
+             __PRETTY_FUNCTION__,                                              \
+             EXPAND_CALL(STRINGIFY, UNIQUE_SYMBOL(_test_case_)),               \
+             std::move(args.thing),                                            \
+             std::move(args.will),                                             \
+             std::move(args.assert_with),                                      \
+             TYPE});                                                           \
         return 0;                                                              \
     }();                                                                       \
     template <typename TEST_INFO>                                              \
     static void UNIQUE_SYMBOL(_test_case_)()
 
-#define TEST_COMP_ASSERT(...)   IMPL(dhagedorn::static_test::test_type::MUST_STATIC_ASSERT, __VA_ARGS__)
-#define TEST_COMPILES(...)   IMPL(dhagedorn::static_test::test_type::MUST_COMPILE, __VA_ARGS__)
+#define TEST_STATIC_ASSERT(...)                                                \
+    IMPL(dhagedorn::static_test::test_type::MUST_STATIC_ASSERT, __VA_ARGS__)
+#define TEST_COMPILE(...)                                                      \
+    IMPL(dhagedorn::static_test::test_type::MUST_COMPILE, __VA_ARGS__, "")
 
 namespace dhagedorn {
 namespace static_test {
@@ -186,6 +187,26 @@ inline std::string namespace_name(const std::string &symbol) {
 
 } // namespace detail
 
+// template for TEST_INFO type passed as the first, hidden, template type
+// argument to each test_case
+// this can be referred to in a TSET_CASE(...) body as TEST_INFO::field
+// and used in a constexpr context
+struct TEST_INFO {
+    static constexpr const char *suite
+        = "test suite name - if this case is inside a TEST_SUITE";
+    static constexpr const char *object
+        = "object under test - first argument to TEST_* macros";
+    static constexpr const char *verb
+        = "object behaviour - second argument to TEST_* macros";
+    static constexpr const char *expected_static_assert
+        = "expected static assert for TEST_STATIC_ASSERT cases - third "
+          "argument";
+    static constexpr const char *file
+        = "original name of file this test case is defined in";
+    static constexpr unsigned line
+        = 0; // original line number this test case is defined on;
+};
+
 enum class test_type {
     MUST_STATIC_ASSERT,
     MUST_COMPILE,
@@ -199,11 +220,12 @@ constexpr inline test_type_raw to_number(test_type value) {
 
 inline test_type from_number(test_type_raw value) {
     switch (value) {
-        case to_number(test_type::MUST_STATIC_ASSERT): return test_type::MUST_STATIC_ASSERT;
-        case to_number(test_type::MUST_COMPILE): return test_type::MUST_COMPILE;
+        case to_number(test_type::MUST_STATIC_ASSERT):
+            return test_type::MUST_STATIC_ASSERT;
+        case to_number(test_type::MUST_COMPILE):
+            return test_type::MUST_COMPILE;
     }
 }
-
 
 struct test_suite {
     std::string file;
