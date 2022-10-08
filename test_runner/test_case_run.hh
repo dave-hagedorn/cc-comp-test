@@ -51,6 +51,8 @@ struct testcase_run {
                 return when(compiler_output->has_static_assert(
                                 tc.expected_assert_message),
                             test_case_result::pass,
+                            compiler_output->did_static_assert(),
+                            test_case_result::fail,
                             compiler_output->compiled,
                             test_case_result::fail,
                             test_case_result::error);
@@ -65,10 +67,24 @@ struct testcase_run {
                     {},
                     compiler_output->did_static_assert(),
                     fmt::format(
-                        "case should have compiled, but asserted with {}",
+                        R"(case should have compiled, but asserted with "{}")",
                         *compiler_output->static_assert_msg()),
                     "case should have compiled, but failed to - see "
                     "stdout/stderr");
+            case static_test::test_type::MUST_STATIC_ASSERT:
+                return when<std ::string>(
+                    compiler_output->compiled,
+                    fmt::format(
+                        R"(case must static_assert with "{}", but compiled)",
+                        tc.expected_assert_message),
+                    compiler_output->did_static_assert(),
+                    fmt::format(
+                        R"(case must static_assert with "{}", but asserted with "{}")",
+                        tc.expected_assert_message,
+                        *compiler_output->static_assert_msg()),
+                    fmt::format(
+                        R"(case must static_assert with "{}", but failed to compile and raised no static_assert)",
+                        tc.expected_assert_message));
             default:
                 return "";
         }

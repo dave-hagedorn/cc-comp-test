@@ -80,6 +80,8 @@ private:
             std::regex{R"_(static assertion failed: (.*))_"},
             // msvc: <source>(3): error C2338: static_assert failed: 'msg'
             std::regex{R"_(static_assert failed: '([^']+)')_"},
+
+            std::regex{R"_((static assert|static_assert)(.*))_"},
         };
 
         for (auto &re : tests) {

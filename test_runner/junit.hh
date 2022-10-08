@@ -77,7 +77,11 @@ private:
     void _start_suite(const test_suite_run &run, tinyxml2::XMLPrinter &p) {
         p.OpenElement("testsuite");
 
-        p.PushAttribute("name", run.test_suite.name.c_str());
+        p.PushAttribute("name",
+                        fmt::format("{} - {}",
+                                    run.test_suite.name,
+                                    run.test_suite.description)
+                            .c_str());
         p.PushAttribute("tests", run.case_runs.size());
         p.PushAttribute("failures", run.failed());
         p.PushAttribute("errors", run.errors());
@@ -103,12 +107,13 @@ private:
 
         if (run.result() == test_case_result::error) {
             p.OpenElement("error");
+            p.PushAttribute("message", run.fail_or_error_message()->c_str());
+            p.CloseElement();
         } else if (run.result() == test_case_result::fail) {
             p.OpenElement("failure");
+            p.PushAttribute("message", run.fail_or_error_message()->c_str());
+            p.CloseElement();
         }
-
-        p.PushAttribute("message", run.fail_or_error_message()->c_str());
-        p.CloseElement();
 
         if (run.result() == test_case_result::error
             || run.result() == test_case_result::fail) {

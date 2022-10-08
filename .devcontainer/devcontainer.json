@@ -21,7 +21,6 @@
         "BazelBuild.vscode-bazel",
         "jeff-hykin.better-cpp-syntax",
         "vadimcn.vscode-lldb",
-        "ccls-project.ccls",
         "llvm-vs-code-extensions.vscode-clangd",
         "ms-python.python",
         "kevinkyang.auto-comment-blocks",
@@ -29,7 +28,8 @@
         "bierner.markdown-mermaid",
         "darkriszty.markdown-table-prettify",
         "telesoho.vscode-markdown-paste-image",
-        "bierner.markdown-emoji"
+        "bierner.markdown-emoji",
+        "redhat.vscode-xml",
     ],
     // Uncomment the next line to run commands after the container is created - for example installing curl.
     // "postCreateCommand": "apt-get update && apt-get install -y curl",
