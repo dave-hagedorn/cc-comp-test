@@ -57,17 +57,22 @@ struct testcase_run {
         }
     }
 
-    std::string fail_or_error_message() const {
+    std::optional<std::string> fail_or_error_message() const {
         switch (tc.type) {
             case static_test::test_type::MUST_COMPILE:
-                return "test case must compile and did not";
-                break;
-            case static_test::test_type::MUST_STATIC_ASSERT:
-                return fmt::format(
-                    R"_(test case must static_assert(false, "{}"))_",
-                    tc.expected_assert_message);
+                return when<std ::string>(
+                    compiler_output->compiled,
+                    {},
+                    compiler_output->did_static_assert(),
+                    fmt::format(
+                        "case should have compiled, but asserted with {}",
+                        *compiler_output->static_assert_msg()),
+                    "case should have compiled, but failed to - see "
+                    "stdout/stderr");
+            default:
+                return "";
         }
-    }
+    };
 };
 
 } // namespace dhagedorn::static_tester::priv

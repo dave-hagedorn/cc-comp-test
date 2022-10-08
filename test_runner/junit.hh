@@ -107,7 +107,7 @@ private:
             p.OpenElement("failure");
         }
 
-        p.PushAttribute("message", run.fail_or_error_message().c_str());
+        p.PushAttribute("message", run.fail_or_error_message()->c_str());
         p.CloseElement();
 
         if (run.result() == test_case_result::error

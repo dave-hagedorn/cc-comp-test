@@ -72,6 +72,10 @@ private:
         const static std::vector<std::regex> tests{
             // clang: <source>:3:1: error: static_assert failed "msg"
             std::regex{R"_(static_assert failed "([^"]+)")_"},
+            // clang: <source>:3:1 error: static_assert failed due to
+            // requirement '<condition>' "msg"
+            std::regex{
+                R"_(static_assert failed due to requirement [^"]+"([^"]+))_"},
             // gcc: <source>:3:15: error: static assertion failed: msg
             std::regex{R"_(static assertion failed: (.*))_"},
             // msvc: <source>(3): error C2338: static_assert failed: 'msg'
@@ -80,9 +84,7 @@ private:
 
         for (auto &re : tests) {
             std::smatch m;
-            std::regex_match(line, m, re);
-
-            if (m.ready()) {
+            if (std::regex_search(line, m, re)) {
                 return m[1].str();
             }
         }
@@ -109,6 +111,18 @@ struct compile_result {
         return r::any_of(diagnostics, [&](auto &diag) {
             return diag.static_assert_msg.has_value();
         });
+    }
+
+    std::optional<std::string> static_assert_msg() const {
+        if (!did_static_assert()) {
+            return {};
+        }
+
+        return r::find_if(diagnostics,
+                          [](auto &diag) {
+                              return diag.static_assert_msg.has_value();
+                          })
+            ->static_assert_msg;
     }
 };
 

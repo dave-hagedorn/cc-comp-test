@@ -52,16 +52,16 @@ private:
     FCT _f;
 };
 
-template <typename TEST, typename RESULT, typename... REST>
+template <typename RESULT, typename TEST, typename... REST>
 inline constexpr auto when(TEST &&test, RESULT &&result, REST... rest) {
     if (test) {
-        return result;
+        return RESULT{std::forward<RESULT>(result)};
     }
 
     if constexpr (sizeof...(REST) >= 2) {
-        return when(rest...);
+        return when(std::forward<REST>(rest)...);
     } else if constexpr (sizeof...(REST) == 1) {
-        return (rest, ...);
+        return (RESULT{std::forward<REST>(rest)}, ...);
     } else {
         static_assert(sizeof...(REST) != 0, "coding error");
     }
