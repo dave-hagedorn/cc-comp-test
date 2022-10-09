@@ -13,31 +13,11 @@ RUN apt update && apt install -y \
 RUN useradd --user-group --shell /usr/bin/zsh --create-home --home-dir $HOME --password dev  dev
 RUN echo "dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-USER $USER
+# SW needed for rest of Dockerfile
+RUN apt install -y \
+    wget
 
-# git           ...
-# python        needed by some Bazel tooling and 3rd party tools
-# libc6-dev     libc - needed by libc++, ... everything
-# binutils      ld (not in bazel toolchain)
-# gcc           crtbegin.o, other startup libs
-# libc++-dev    libc++.s0.1 - system's libc++ runtime (Bazel toolchain doesn't include this?)
-# nano          git editor
-# tig           git history
-#
-# could exclude in final layers if optimizing size
-# pip           to install codechecker (could exclude in final layer)
-# wget          download stuff
-RUN sudo apt install -y \
-    git \
-    python3 \
-    libc6-dev \
-    wget \
-    binutils \
-    gcc \
-    libc++-dev \
-    pip \
-    nano \
-    tig
+USER $USER
 
 RUN mkdir $HOME/bin
 
@@ -81,3 +61,31 @@ WORKDIR /home/$USER
 # Those using devconainers on Windows/Mac may want to volume mount the workspace because bind mounts are so slow there
 COPY --chown=$USER:$USER .devcontainer/post-start.sh /home/$USER/bin/
 RUN chmod +x $HOME/bin/*
+
+
+# SW needed by dev or build
+# put last so easier to update in Dockerfile - the above should change rarely
+# git           ...
+# python        needed by some Bazel tooling and 3rd party tools
+# libc6-dev     libc - needed by libc++, ... everything
+# binutils      ld (not in bazel toolchain)
+# gcc           crtbegin.o, other startup libs
+# libc++-dev    libc++.s0.1 - system's libc++ runtime (Bazel toolchain doesn't include this?)
+# nano          git editor
+# tig           git history
+#
+# could exclude in final layers if optimizing size
+# pip           to install codechecker (could exclude in final layer)
+# wget          download stuff
+RUN sudo apt install -y \
+    git \
+    python3 \
+    libc6-dev \
+    wget \
+    binutils \
+    gcc \
+    libc++-dev \
+    pip \
+    nano \
+    tig \
+    jq
