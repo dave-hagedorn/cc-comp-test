@@ -23,6 +23,7 @@ MUST_COMPILE("to_string", "only works on numbers") {
 
     // ℹ️ [4] test information is passed in as a TestCase object
     to_string(TestCase::line);
+    asdf
 }
 
 // ℹ️ [5] alternatively, test cases can be grouped into suites
