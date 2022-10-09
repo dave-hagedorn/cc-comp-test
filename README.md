@@ -1,25 +1,23 @@
-- [cc_test, but for static_assert](#cc_test-but-for-static_assert)
+- [`cc_test`, but for `static_assert`](#cc_test-but-for-static_assert)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Detailed Documentation](#detailed-documentation)
-  - [cc_comp_test](#cc_comp_test)
-  - [comp_test.hh](#comp_testhh)
+  - [cc_comp_test Bazel rule](#cc_comp_test-bazel-rule)
+  - [comp_test.hh library](#comp_testhh-library)
   - [JUnit Output (test.xml)](#junit-output-testxml)
 - [How it Works](#how-it-works)
 - [Hacking/Contributing](#hackingcontributing)
   - [Dev Continer](#dev-continer)
 
 
-# cc_test, but for static_assert
+# `cc_test`, but for `static_assert`
 
 Unit test your C++ 11/14/17/20/2[3b] `static_assert()`'s and other compile time checks with Bazel.
 
 `cc_comp_test` is a Bazel rule to build and run compile time tests.  It works with Bazel alongside your
 cc_test and other cc_* rules, and emits Bael-friendly JUnit test results similar to GoogleTest.
 
-`cc_comp_test` will work with Clang.
-
-Tested on Linux.  GCC and MSVC support pending.
+`cc_comp_test` works with Clang on Linux.  GCC and MSVC support pending.
 
 The core implementation does not require Bazel and should be portable to other build systems.
 
@@ -61,12 +59,15 @@ void to_string(T &&value) {
 // ℹ️ [1] test cases can be listed standalone
 
 // ℹ️ [2] test for a static_assert with a specific message
-MUST_STATIC_ASSERT("to_string", "only works on numbers", "type not supported") {
+MUST_STATIC_ASSERT("to_string fcn",
+                   "only works on numbers",
+                   "type not supported") {
     to_string(TestCase::object);
 }
 
-// ℹ️ [3] test that code compiles - speicifically that it does not static_assert
-MUST_COMPILE("to_string", "only works on numbers") {
+// ℹ️ [3] test that code compiles - speicifically that it does not
+// static_assert
+MUST_COMPILE("to_string fcn", "only works on numbers") {
 
     // ℹ️ [4] test information is passed in as a TestCase object
     to_string(TestCase::line);
@@ -76,7 +77,8 @@ MUST_COMPILE("to_string", "only works on numbers") {
 TEST_SUITE("test_types", "should all pass") {
 
     // ℹ️ [6] arguments can be named using designated initializer synax
-    MUST_STATIC_ASSERT(.object = "to_string",
+    // ℹ️ [7] string literals define test info - spaces, etc. are allowed
+    MUST_STATIC_ASSERT(.object = "to_string fcn",
                        .will = "only works on numbers",
                        .assert_with = "non-existent assert", ) {
         to_string(TestCase::object);
@@ -89,28 +91,32 @@ Use the cc_comp_test rule to define a test target using these test cases
 See [BUILD.bazel](readme_sample/BUILD.bazel) in [readme_sample](readme_sample) for full example.
 
 ```py
-# BUILD.bazel
-
-load("@cc_comp_test:cc_comp_test.bzl", "cc_comp_test")
+load("//:cc_comp_test.bzl", "cc_comp_test")
 
 cc_comp_test(
-    name = "testing_numbers"
-    # src can be omitted - <name>.cc will be used
-    src = "testing_numbers.cc",
-    # any normal cc_* deps are supported - cc_library(), etc.
-    deps = [
-        "//needed_lib",
-    ]
+    name = "readme_sample",
+
+    # ℹ️ [1] src can be omitted, in which csae <name>.cc is assumed
+    src = "readme_sample.cc",
+
+    # ℹ️ [2] copts are passed on the command line, same as other `cc_*` rules
+    copts = [
+        "-std=c++20",
+    ],
+
+    # ℹ️ [3] any `cc_*` dependencies - our library under test, etc. can be specified
+    deps = [],
 )
+
 ```
 
 ```bash
-bazel test :testing_numbers
+bazel test :readme_sample
 ```
 
 # Detailed Documentation
 
-## cc_comp_test
+## cc_comp_test Bazel rule
 
 | parameter | meaning                                                                                                                                                           |
 |-----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -118,7 +124,7 @@ bazel test :testing_numbers
 | `deps`    | Any deps required to compile your test - your lib under test, other libs, etc.  Usually other cc_library()'s, but any rule with a provider of `CcInfo` is allowed |
 | `copts` | Same as `copts` flag in any other `cc_*` rule - compiler flags to use when compiling your `.cc/.cpp/.cxx` files
 
-## comp_test.hh
+## comp_test.hh library
 
 Supported test definitions
 
@@ -138,8 +144,8 @@ Each case can pass, fail, or error, with the meaning of this depending on the te
 
 | test case type     | pass                                                         | fail                                                                                     | error                                                                        |
 |--------------------|--------------------------------------------------------------|------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
-| `TEST_MUST_ASSERT` | compilation failed with the expected `static_assert` message | compilation succeeded - `static_assert` did not fire, a different `static_assert` fired. | compilation failed for any other reason - compile error, not `static_assert` |
-| `TEST_MUST_COMPIL` | compilation succeeded                                        | compilation failed with some `static_assert`                                             | compilation failed for any other reason - compile error, not `static_assert` |
+| `TEST_MUST_ASSERT` | compilation failed with the expected `static_assert` message | compilation succeeded - `static_assert` did not fire, or a different `static_assert` fired. | compilation failed for any other reason - any compilation error that is not a `static_assert` |
+| `TEST_MUST_COMPIL` | compilation succeeded                                        | compilation failed with any `static_assert`                                             | compilation failed for any other reason - any compilation error that is not a `static_assert` |
 
 
 # How it Works

@@ -2,7 +2,15 @@ load("//:cc_comp_test.bzl", "cc_comp_test")
 
 cc_comp_test(
     name = "readme_sample",
+
+    # ℹ️ [1] src can be omitted, in which csae <name>.cc is assumed
+    src = "readme_sample.cc",
+
+    # ℹ️ [2] copts are passed on the command line, same as other `cc_*` rules
     copts = [
         "-std=c++20",
     ],
+
+    # ℹ️ [3] any `cc_*` dependencies - our library under test, etc. can be specified
+    deps = [],
 )
