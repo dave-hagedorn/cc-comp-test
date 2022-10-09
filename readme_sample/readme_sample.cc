@@ -1,4 +1,3 @@
-
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -12,24 +11,24 @@ void to_string(T &&value) {
     std::to_string(value);
 }
 
-// test cases can be listed standalone
+// ℹ️ [1] test cases can be listed standalone
 
-// test for a static_assert with a specific message
+// ℹ️ [2] test for a static_assert with a specific message
 MUST_STATIC_ASSERT("to_string", "only works on numbers", "type not supported") {
     to_string(TestCase::object);
 }
 
-// test that code does not static_assert
+// ℹ️ [3] test that code compiles - speicifically that it does not static_assert
 MUST_COMPILE("to_string", "only works on numbers") {
 
-    // test information is passed in as a TestCase object
+    // ℹ️ [4] test information is passed in as a TestCase object
     to_string(TestCase::line);
 }
 
-// alternatively, test cases can be grouped into suites
+// ℹ️ [5] alternatively, test cases can be grouped into suites
 TEST_SUITE("test_types", "should all pass") {
 
-    // arguments can be named using designated initializer synax
+    // ℹ️ [6] arguments can be named using designated initializer synax
     MUST_STATIC_ASSERT(.object = "to_string",
                        .will = "only works on numbers",
                        .assert_with = "non-existent assert", ) {
