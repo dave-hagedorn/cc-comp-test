@@ -24,6 +24,9 @@ using namespace std::chrono_literals;
 namespace bfs = boost::filesystem;
 
 /* Bazel:
+See:
+https://github.com/bazelbuild/bazel/blob/master/src/java_tools/junitrunner/java/com/google/testing/junit/runner/model/AntXmlResultWriter.java#L33
+
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
   <testsuite name="sample/test.sh" tests="1" failures="0" errors="0">
