@@ -5,7 +5,7 @@ refresh_compile_commands(
     exclude_external_sources = True,
     exclude_headers = "external",
     targets = {
-        "//test_runner:test_runner": "",
+        "//...": "",
     },
 )
 

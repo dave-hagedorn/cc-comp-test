@@ -14,7 +14,7 @@
 #include "executable.hh"
 #include "log.hh"
 
-namespace dhagedorn::static_tester::priv {
+namespace dhagedorn::comp_test::impl {
 
 namespace bfs = boost::filesystem;
 namespace r = ranges;
@@ -233,13 +233,13 @@ private:
     std::vector<std::string> _args;
 };
 
-} // namespace dhagedorn::static_tester::priv
+} // namespace dhagedorn::comp_test::impl
 
 template <>
-struct fmt::formatter<dhagedorn::static_tester::priv::compiler_diagnostic>
+struct fmt::formatter<dhagedorn::comp_test::impl::compiler_diagnostic>
     : fmt::formatter<std::string> {
     template <typename FormatContext>
-    auto format(const dhagedorn::static_tester::priv::compiler_diagnostic &p,
+    auto format(const dhagedorn::comp_test::impl::compiler_diagnostic &p,
                 FormatContext &ctx) const {
         // ctx.out() is an output iterator to write to.
         return format_to(ctx.out(), "{}", p.original);

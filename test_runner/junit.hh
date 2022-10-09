@@ -15,7 +15,7 @@
 #include "test_case_run.hh"
 #include "util.hh"
 
-namespace dhagedorn::static_tester::priv {
+namespace dhagedorn::comp_test::impl {
 
 #include "boost/filesystem.hpp"
 
@@ -136,4 +136,4 @@ private:
     }
 };
 
-} // namespace dhagedorn::static_tester::priv
+} // namespace dhagedorn::comp_test::impl

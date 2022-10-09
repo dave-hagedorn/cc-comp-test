@@ -12,7 +12,7 @@
 #include "compiler.hh"
 #include "util.hh"
 
-namespace dhagedorn::static_tester::priv {
+namespace dhagedorn::comp_test::impl {
 
 using namespace std::string_literals;
 
@@ -31,7 +31,7 @@ enum class test_case_result {
 };
 
 struct testcase_run {
-    static_test::test_case tc;
+    comp_test::test_case tc;
     std::optional<compile_result> compiler_output;
     std::chrono::milliseconds duration;
 
@@ -41,13 +41,13 @@ struct testcase_run {
         }
 
         switch (tc.type) {
-            case static_test::test_type::MUST_COMPILE:
+            case comp_test::test_type::MUST_COMPILE:
                 return when(compiler_output->compiled,
                             test_case_result::pass,
                             compiler_output->did_static_assert(),
                             test_case_result::fail,
                             test_case_result::error);
-            case static_test::test_type::MUST_STATIC_ASSERT:
+            case comp_test::test_type::MUST_STATIC_ASSERT:
                 return when(compiler_output->has_static_assert(
                                 tc.expected_assert_message),
                             test_case_result::pass,
@@ -61,7 +61,7 @@ struct testcase_run {
 
     std::optional<std::string> fail_or_error_message() const {
         switch (tc.type) {
-            case static_test::test_type::MUST_COMPILE:
+            case comp_test::test_type::MUST_COMPILE:
                 return when<std ::string>(
                     compiler_output->compiled,
                     {},
@@ -71,7 +71,7 @@ struct testcase_run {
                         *compiler_output->static_assert_msg()),
                     "case should have compiled, but failed to - see "
                     "stdout/stderr");
-            case static_test::test_type::MUST_STATIC_ASSERT:
+            case comp_test::test_type::MUST_STATIC_ASSERT:
                 return when<std ::string>(
                     compiler_output->compiled,
                     fmt::format(
@@ -91,4 +91,4 @@ struct testcase_run {
     };
 };
 
-} // namespace dhagedorn::static_tester::priv
+} // namespace dhagedorn::comp_test::impl

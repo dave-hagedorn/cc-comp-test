@@ -9,7 +9,7 @@
 
 #include "boost/filesystem.hpp"
 
-namespace dhagedorn::static_tester::priv {
+namespace dhagedorn::comp_test::impl {
 
 namespace bfs = boost::filesystem;
 
@@ -57,4 +57,4 @@ private:
     std::stringstream _content;
 };
 
-} // namespace dhagedorn::static_tester::priv
+} // namespace dhagedorn::comp_test::impl

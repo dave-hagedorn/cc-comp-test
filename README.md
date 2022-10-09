@@ -13,12 +13,16 @@
 
 # cc_test, but for static_assert
 
-Unit test your C++ 11+ `static_assert()`'s and other compile time testing for Bazel.
+Unit test your C++ 11/14/17/20 `static_assert()`'s and other compile time checks with Bazel.
 
 `cc_comp_test` is a Bazel rule to build and run compile time tests.  It works with Bazel alongside your 
 cc_test and other testing rules, and emits JUnit test results.
 
 `cc_comp_test` will work with Clang, GCC, and MSVC using C++11 or newer code.
+
+The core implementation does not require Bazel and should be portable to other build systems.
+
+`cc_comp_test` itself is written in C++17
 
 # Installation
 
@@ -35,40 +39,45 @@ http_archive(
 
 # Usage
 
-Write your test cases in any source file
+Write your test cases in any single source file
 
 ```c++
-// numbers_test.cc
 
+#include <string>
 #include <type_traits>
+#include <vector>
 
 #include "comp_test/comp_test.hh"
 
 template <typename T>
-auto picky_to_string(T &&value) {
-    static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>, "only numbers are supported");
-
-    if constexpr (std::is_integral_v<T>) {
-        static_assert(std::is_unsigned_v<T>, "signed types not supported");
-    }
-
-    return std::to_string(value);
+void to_string(T &&value) {
+    using decayed_t = typename std::decay<T>::type;
+    static_assert(std::is_integral<decayed_t>{});
+    std::to_string(value);
 }
 
-// Test cases can be grouped inside test suites
-TEST_SUITE("numbers") {
+// test cases can be listed standalone
 
-    TEST_COMP_ASSERT("to_string", "only allows numbers", "only numbers are supported") {
-        auto value = "invalid value";
+// test for a static_assert with a specific message
+MUST_STATIC_ASSERT("to_string", "only works on numbers", "type not supported") {
+    to_string(TestCase::object);
+}
 
-        picky_to_string(value);
-    }
+// test that code does not static_assert
+MUST_COMPILE("to_string", "only works on numbers") {
 
-    // Designated initializer notation can also be used, allowing for "named" arguments
-    // You need -std=c++20  for this, otherwise you may see compile warnings
-    // Clang/GCC also support this as an extension pre-C++20
-    TEST_COMP_ASSERT(.thing="to_string", .will="does not allow signed types", .assert_with="signed types not supported") {
-        picky_to_string(-3);
+    // test information is passed in as a TestCase object
+    to_string(TestCase::line);
+}
+
+// alternatively, test cases can be grouped into suites
+TEST_SUITE("test_types", "should all pass") {
+
+    // arguments can be named using designated initializer synax
+    MUST_STATIC_ASSERT(.object = "to_string",
+                       .will = "only works on numbers",
+                       .assert_with = "non-existent assert", ) {
+        to_string(TestCase::object);
     }
 }
 ```

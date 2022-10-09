@@ -25,7 +25,7 @@
 #include "test_case_run.hh"
 #include "test_suite_run.hh"
 
-namespace dhagedorn::static_tester::priv {
+namespace dhagedorn::comp_test::impl {
 
 using namespace std::chrono_literals;
 
@@ -97,7 +97,7 @@ auto validate_opts(const po::variables_map &result,
 
 auto parse_opts(int argc, char **argv) {
     po::options_description options{
-        R"(Runner for static_test rule - invokes compiler for a source
+        R"(Runner for comp_test rule - invokes compiler for a source
         "file and determines if static_assert triggered at compile time)"};
 
     // clang-format off
@@ -150,7 +150,7 @@ auto parse_opts(int argc, char **argv) {
     };
 }
 
-auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
+auto run_case(const args &args, const test_case &tc) {
     auto c = code(tc.file);
 
     auto start = std::chrono::steady_clock::now();
@@ -159,7 +159,7 @@ auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
 
     auto runner = fmt::format(
         R"(
-        struct TEST_INFO {{
+        struct TestCaseInstantiation {{
             static constexpr const char* suite = "{}";
             static constexpr const char* object = "{}";
             static constexpr const char* verb = "{}";
@@ -170,7 +170,7 @@ auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
 
         int main() {{
             // instantiate test function, should static assert
-            {}{}<TEST_INFO>();
+            {}{}<TestCaseInstantiation>();
             return 0;
         }}
     )",
@@ -201,15 +201,14 @@ auto run_case(const args &args, const dhagedorn::static_test::test_case &tc) {
     };
 }
 
-using suites_with_cases
-    = std::unordered_map<static_test::test_suite,
-                         std::vector<static_test::test_case>>;
+using suites_with_cases = std::unordered_map<comp_test::test_suite,
+                                             std::vector<comp_test::test_case>>;
 
 auto run_tests(const args &args, const suites_with_cases &suites) {
     std::vector<test_suite_run> suite_runs;
 
     for (const auto &[suite, cases] : suites) {
-        auto suite_run = test_suite_run{.test_suite = suite};
+        auto suite_run = test_suite_run{suite};
 
         for (const auto &tc : cases) {
             auto result = run_case(args, tc);
@@ -242,29 +241,24 @@ auto get_tests(const args &args) {
 
     auto to_vector = r::to<std::vector>();
 
-    auto suites
-        = output.stdout | filter_and_strip("test_suite:")
-          | rv::transform(&dhagedorn::static_test::test_suite::from_string)
-          | to_vector;
+    auto suites = output.stdout | filter_and_strip("test_suite:")
+                  | rv::transform(&test_suite::from_string) | to_vector;
 
-    auto cases
-        = output.stdout | filter_and_strip("test_case:")
-          | rv::transform(&dhagedorn::static_test::test_case::from_string)
-          | to_vector;
+    auto cases = output.stdout | filter_and_strip("test_case:")
+                 | rv::transform(&test_case::from_string) | to_vector;
 
     return std::tuple{suites, cases};
 }
 
-auto connect(std::vector<dhagedorn::static_test::test_suite> &suites,
-             std::vector<dhagedorn::static_test::test_case> &cases) {
+auto connect(std::vector<test_suite> &suites, std::vector<test_case> &cases) {
 
     // "no suite" case
     suites.push_back({
-        .file = cases.size() > 0 ? cases[0].file : "no file -  no cases",
-        .line = 0,
-        .symbol = "",
-        .name = "top_level",
-        .description = "top level testcases without a suite",
+        cases.size() > 0 ? cases[0].file : "no file -  no cases",
+        0,
+        "",
+        "top_level",
+        "top level testcases without a suite",
     });
 
     auto suites_by_symbol = suites | rv::transform([](auto &suite) {
@@ -273,8 +267,7 @@ auto connect(std::vector<dhagedorn::static_test::test_suite> &suites,
                             | r::to<std::unordered_map>();
 
     auto map = suites | rv::transform([](auto &suite) {
-                   return std::pair{
-                       suite, std::vector<dhagedorn::static_test::test_case>{}};
+                   return std::pair{suite, std::vector<test_case>{}};
                })
                | r::to<std::unordered_map>();
 
@@ -292,23 +285,22 @@ auto write_junit(const args &args, const std::vector<test_suite_run> &results) {
     }
 }
 
-} // namespace dhagedorn::static_tester::priv
+} // namespace dhagedorn::comp_test::impl
 
 int main(int argc, char **argv) {
-    dhagedorn::static_tester::priv::log(
-        "env",
-        "bin",
-        argv[0],
-        "pwd",
-        boost::filesystem::current_path().native());
+    dhagedorn::comp_test::impl::log("env",
+                                    "bin",
+                                    argv[0],
+                                    "pwd",
+                                    boost::filesystem::current_path().native());
 
-    auto args = dhagedorn::static_tester::priv::parse_opts(argc, argv);
+    auto args = dhagedorn::comp_test::impl::parse_opts(argc, argv);
 
     args.print();
 
     auto [suites, cases] = get_tests(args);
 
-    dhagedorn::static_tester::priv::log(
+    dhagedorn::comp_test::impl::log(
         "test info",
         "suites",
         suites | ranges::views::transform([](auto &suite) {
@@ -319,10 +311,9 @@ int main(int argc, char **argv) {
             return tc.test_suite_symbol();
         }));
 
-    auto by_suite = dhagedorn::static_tester::priv::connect(suites, cases);
+    auto by_suite = dhagedorn::comp_test::impl::connect(suites, cases);
 
-    auto runs_by_suite
-        = dhagedorn::static_tester::priv::run_tests(args, by_suite);
+    auto runs_by_suite = dhagedorn::comp_test::impl::run_tests(args, by_suite);
 
     write_junit(args, runs_by_suite);
 

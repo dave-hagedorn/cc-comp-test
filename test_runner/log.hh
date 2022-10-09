@@ -7,7 +7,7 @@
 #include "fmt/core.h"
 #include "fmt/format.h"
 
-namespace dhagedorn::static_tester::priv {
+namespace dhagedorn::comp_test::impl {
 
 template <std::size_t N>
 constexpr auto is_string_literal(const char (&)[N]) {
@@ -101,4 +101,4 @@ void log(const char *msg, ARGS &&...args) {
     }
 }
 
-} // namespace dhagedorn::static_tester::priv
+} // namespace dhagedorn::comp_test::impl

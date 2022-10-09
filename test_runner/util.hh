@@ -5,7 +5,7 @@
 
 #include "range/v3/all.hpp"
 
-namespace dhagedorn::static_tester::priv {
+namespace dhagedorn::comp_test::impl {
 
 template <typename D>
 inline auto join(D &&d) {
@@ -67,4 +67,4 @@ inline constexpr auto when(TEST &&test, RESULT &&result, REST... rest) {
     }
 }
 
-} // namespace dhagedorn::static_tester::priv
+} // namespace dhagedorn::comp_test::impl

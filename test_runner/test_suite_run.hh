@@ -6,7 +6,7 @@
 
 #include "test_case_run.hh"
 
-namespace dhagedorn::static_tester::priv {
+namespace dhagedorn::comp_test::impl {
 
 namespace rv = ranges::views;
 namespace r = ranges;
@@ -14,7 +14,7 @@ namespace r = ranges;
 using namespace std::chrono_literals;
 
 struct test_suite_run {
-    static_test::test_suite test_suite;
+    comp_test::test_suite test_suite;
     std::vector<testcase_run> case_runs;
 
     auto passed() const {
@@ -41,4 +41,4 @@ struct test_suite_run {
     }
 };
 
-} // namespace dhagedorn::static_tester::priv
+} // namespace dhagedorn::comp_test::impl

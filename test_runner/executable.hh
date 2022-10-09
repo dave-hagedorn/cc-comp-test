@@ -11,7 +11,7 @@
 #include "log.hh"
 #include "range/v3/all.hpp"
 
-namespace dhagedorn::static_tester::priv {
+namespace dhagedorn::comp_test::impl {
 
 namespace bp = boost::process;
 namespace bfs = boost::filesystem;
@@ -42,13 +42,11 @@ struct executable {
         bp::child proc;
 
         try {
-            proc = bp::child(
-                path,
-                bp::args(args),
-                bp::std_err > stderr,
-                bp::std_out > stdout,
-                ios
-            );
+            proc = bp::child(path,
+                             bp::args(args),
+                             bp::std_err > stderr,
+                             bp::std_out > stdout,
+                             ios);
 
             ios.run();
             proc.wait();
@@ -70,4 +68,4 @@ struct executable {
     }
 };
 
-} // namespace dhagedorn::static_tester::priv
+} // namespace dhagedorn::comp_test::impl

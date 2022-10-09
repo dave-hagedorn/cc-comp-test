@@ -18,36 +18,36 @@ void to_string(T &&value) {
 
 // Grouping tests by suite
 TEST_SUITE("test_types", "should all pass") {
-    TEST_STATIC_ASSERT(
+    MUST_STATIC_ASSERT(
         "to_string", "only works on numbers", "type not supported") {
-        to_string(TEST_INFO::object);
+        to_string(TestCase::object);
     }
 
-    TEST_COMPILE("to_string", "only works on numbers") {
-        to_string(TEST_INFO::line);
+    MUST_COMPILE("to_string", "only works on numbers") {
+        to_string(TestCase::line);
     }
 }
 
 TEST_SUITE("test_types", "should all fail") {
     // should pass in test results
-    TEST_STATIC_ASSERT(
+    MUST_STATIC_ASSERT(
         "to_string", "only works on numbers", "non-existent assert") {
-        to_string(TEST_INFO::object);
+        to_string(TestCase::object);
     }
 
-    TEST_COMPILE("to_string", "only works on numbers") {
-        to_string(TEST_INFO::object);
+    MUST_COMPILE("to_string", "only works on numbers") {
+        to_string(TestCase::object);
     }
 }
 
 TEST_SUITE("test_types", "should all error") {
     // should pass in test results
-    TEST_STATIC_ASSERT(
+    MUST_STATIC_ASSERT(
         "to_string", "only works on numbers", "type not supported") {
-        to_str(TEST_INFO::OBJECT);
+        to_str(TestCase::OBJECT);
     }
 
-    TEST_COMPILE("to_string", "only works on numbers") {
-        to_str(TEST_INFO::OBJECT);
+    MUST_COMPILE("to_string", "only works on numbers") {
+        to_str(TestCase::OBJECT);
     }
 }

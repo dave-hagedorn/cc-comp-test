@@ -5,6 +5,7 @@
 #include <iostream>
 #include <regex>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -39,7 +40,7 @@ struct test_suite_args {
 #define TEST_SUITE(...)                                                        \
     static auto EXPAND_CALL(JOIN, _test_suite_define, __LINE__) = [] {         \
         test_suite_args args{__VA_ARGS__};                                     \
-        dhagedorn::static_test::_test_suites().push_back({                     \
+        dhagedorn::comp_test::_test_suites().push_back({                       \
             __FILE__,                                                          \
             __LINE__,                                                          \
             EXPAND_CALL(STRINGIFY, UNIQUE_SYMBOL(_test_suite_)),               \
@@ -52,10 +53,7 @@ struct test_suite_args {
     namespace UNIQUE_SYMBOL(_test_suite_)
 
 struct comp_assert_args {
-    comp_assert_args(comp_assert_args &&) = delete;
-    comp_assert_args(const comp_assert_args &) = delete;
-
-    required<std::string> thing;
+    required<std::string> object;
     required<std::string> will;
     required<std::string> assert_with;
 }; // namespace comp_assert_args
@@ -64,27 +62,27 @@ struct comp_assert_args {
     static auto EXPAND_CALL(JOIN, _comp_test_define, __LINE__) = [] {          \
         comp_assert_args args{__VA_ARGS__};                                    \
         std::string pretty = std::string{__PRETTY_FUNCTION__};                 \
-        dhagedorn::static_test::_test_cases().push_back(                       \
+        dhagedorn::comp_test::_test_cases().push_back(                         \
             {__FILE__,                                                         \
              __LINE__,                                                         \
              __PRETTY_FUNCTION__,                                              \
              EXPAND_CALL(STRINGIFY, UNIQUE_SYMBOL(_test_case_)),               \
-             std::move(args.thing),                                            \
+             std::move(args.object),                                           \
              std::move(args.will),                                             \
              std::move(args.assert_with),                                      \
              TYPE});                                                           \
         return 0;                                                              \
     }();                                                                       \
-    template <typename TEST_INFO>                                              \
+    template <typename TestCase>                                               \
     static void UNIQUE_SYMBOL(_test_case_)()
 
-#define TEST_STATIC_ASSERT(...)                                                \
-    IMPL(dhagedorn::static_test::test_type::MUST_STATIC_ASSERT, __VA_ARGS__)
-#define TEST_COMPILE(...)                                                      \
-    IMPL(dhagedorn::static_test::test_type::MUST_COMPILE, __VA_ARGS__, "")
+#define MUST_STATIC_ASSERT(...)                                                \
+    IMPL(dhagedorn::comp_test::test_type::MUST_STATIC_ASSERT, __VA_ARGS__)
+#define MUST_COMPILE(...)                                                      \
+    IMPL(dhagedorn::comp_test::test_type::MUST_COMPILE, __VA_ARGS__, "")
 
 namespace dhagedorn {
-namespace static_test {
+namespace comp_test {
 
 namespace detail {
 
@@ -187,11 +185,13 @@ inline std::string namespace_name(const std::string &symbol) {
 
 } // namespace detail
 
-// template for TEST_INFO type passed as the first, hidden, template type
-// argument to each test_case
-// this can be referred to in a TSET_CASE(...) body as TEST_INFO::field
-// and used in a constexpr context
-struct TEST_INFO {
+/**
+ * template for TestCase type passed as the first, hidden, template type
+ * argument to each test_case
+ * this can be referred to in a TEST_CASE(...) body as TestCase::field
+ * and used in a constexpr context
+ */
+struct TestCase {
     static constexpr const char *suite
         = "test suite name - if this case is inside a TEST_SUITE";
     static constexpr const char *object
@@ -199,7 +199,7 @@ struct TEST_INFO {
     static constexpr const char *verb
         = "object behaviour - second argument to TEST_* macros";
     static constexpr const char *expected_static_assert
-        = "expected static assert for TEST_STATIC_ASSERT cases - third "
+        = "expected static assert for MUST_STATIC_ASSERT cases - third "
           "argument";
     static constexpr const char *file
         = "original name of file this test case is defined in";
@@ -225,6 +225,8 @@ inline test_type from_number(test_type_raw value) {
         case to_number(test_type::MUST_COMPILE):
             return test_type::MUST_COMPILE;
     }
+
+    throw std::runtime_error{"invalid value for test_type"};
 }
 
 struct test_suite {
@@ -330,15 +332,15 @@ inline std::vector<test_suite> &_test_suites() {
     return store;
 }
 
-} // namespace static_test
+} // namespace comp_test
 
 } // namespace dhagedorn
 
 namespace std {
 template <>
-struct hash<dhagedorn::static_test::test_suite> {
+struct hash<dhagedorn::comp_test::test_suite> {
     std::size_t
-    operator()(dhagedorn::static_test::test_suite const &suite) const {
+    operator()(dhagedorn::comp_test::test_suite const &suite) const {
         return std::hash<std::string>{}(suite.file
                                         + std::to_string(suite.line));
     }
