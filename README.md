@@ -8,6 +8,7 @@
 - [How it Works](#how-it-works)
 - [Hacking/Contributing](#hackingcontributing)
   - [Dev Continer](#dev-continer)
+  - [Linux](#linux)
 
 
 # `cc_test`, but for `static_assert`
@@ -109,7 +110,6 @@ cc_comp_test(
 )
 
 ```
-
 ```bash
 bazel test :readme_sample
 ```
@@ -173,18 +173,21 @@ After all of the prerequisites have been built the tests can be run:
     3.  The runner then tries to compile `test'.cc` and parses any compiler output, including any `static_assert`ions and their messages
     4.  The test case's status is determined by type of test case, whether its compilation passed, failed with an expected `static_assert`, or failed with an unexpected static_assert or other compiler error
 
-Note that using this approach, your test cases are isolated through templated functions.  As each test case - function - is instantiated only when it is "run", this causes any depdendant code in the test case to be evaluated at compile time with respect to `static_assert` or other compile time checks.
+Note that using this approach, your test cases are isolated through templated functions.  As each test case - function - is instantiated only when it is "run", this then causes any depdendant code in the test case to be evaluated at compile time with respect to `static_assert` or other compile time checks.
 
-This does mean that invalid C++ code - improper syntax, etc - in one test csae is *not* isolated from other test cases and will cause all code to
-fail to compile.  This will likly mean your test itself cannot be built - the `info binary` will fail to build in the first place.
+This does however mean that invalid C++ code - improper syntax, etc - in one test csae is *not* isolated from other test cases and will cause all code to fail to compile.  This will likly mean your test target itself will fail to build - the `info binary` will fail to build in the first place.
+This should result in a build failure, rather than a test failure.
 
 # Hacking/Contributing
 
 ## Dev Continer
 
-If you use VSCode and are OK to work in a [Dev Container](https://code.visualstudio.com/docs/remote/containers), this is the recommended approach.
+If you use VSCode and are OK to work in a [Dev Container](https://code.visualstudio.com/docs/remote/containers), this is the recommended approach, and
+should work on Mac, Windows, or Linux.
 
 Just open this folder in VSCode and when prompted, reopen inside the Dev Container.
+
+See [Getting Started](https://code.visualstudio.com/docs/remote/containers#_getting-started) for information on how to use Dev Containers on different platforms.  Note that on MacOS where bind mounts are quite slow, you may want to change the bind mound in [devcontainer.json](.devcontainer/devcontainer.json) to a volume moun0. and clone this repo directly from within the container.  See [Improve disk performance](https://code.visualstudio.com/remote/advancedcontainers/improve-performance) for more information.
 
 The recommended extensions such as clangd for code navigation will be installed.
 The clangd extension will ask you if it should download the clangd binary - just say yes.
@@ -199,5 +202,27 @@ As much as possible workspace settings are configured in `.vscode/settings.json`
 
 If this makes you uncomfortable you can uncomment these lines in [devcontainer.json](.devcontainer/devcontainer.json)
 
+Note also that `devcontainer.json` adds some volume mounts to the Dev Container - these are to cache the Bazel caches,
+and VS Code extensions.  This is documented in `devcontainer.json`.  These can become quite large but can be safely deleted if needed, your next
+build will just take longer and the Bazel managed Clang toolchain will need to be re-downloaded (~600MB).
+
+## Linux
+
+Install [bazelisk](https://github.com/bazelbuild/bazelisk) if this is not already installed.  You can use bazelisk one of two ways:
+
+1. Make sure `bazelisk` is in your `$PATH` and replace any usage of the `bazel` command with `bazelisk`
+2. Or, symlink `bazelisk to `bazel` somewhere in your `$PATH`
+
+Bazel will manage all of the external dependencies, including Clang.  Some core development tools and libraries may need to be installed.
+Ex, in an Ubuntu Dev Container, I still had to install the additional packages:
+
+* libc6-dev
+* binutils
+* python3 - and also symlink python to python3
+* gcc
+* libc++dev
+
+See [Dockerfile](Dockerfile) for a more detailed explanation.  In short, there are some third-party Bazel rules that require Python,
+and the clang toolchain being used still requires some core development libraries that are (I assume) not included in the Clang binary releases.
 
 
