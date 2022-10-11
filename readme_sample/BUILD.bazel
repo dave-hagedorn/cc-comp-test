@@ -8,7 +8,8 @@ cc_comp_test(
 
     # ℹ️ [2] copts are passed on the command line, same as other `cc_*` rules
     copts = [
-        "-std=c++20",
+        #"-std=c++20",
+        "-std=c++2a",
     ],
 
     # ℹ️ [3] any `cc_*` dependencies - our library under test, etc. can be specified
