@@ -173,7 +173,7 @@ private:
     // For no NS = remove "namespace_name::"
 // clang-format on
 inline std::string namespace_name(const std::string &symbol) {
-    std::regex reg{R"(.*\s+([\w\d_]+)::(\(anonymous|<lambda).*)"};
+    std::regex reg{R"_(([\w\d_]+)::(\(anonymous|<lambda))_"};
 
     std::smatch match;
     if (std::regex_search(symbol, match, reg)) {

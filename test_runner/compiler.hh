@@ -144,12 +144,6 @@ public:
 
         comp_result.compile_output = exec.run();
 
-        log("comp output",
-            "stdout",
-            comp_result.compile_output.stdout,
-            "stderr",
-            comp_result.compile_output.stderr);
-
         if (bfs::is_regular(output)) {
             bfs::permissions(output,
                              bfs::perms::owner_exe | bfs::perms::owner_read
@@ -223,7 +217,6 @@ private:
 
         // Should work for clang and gcc
         rewritten.push_back("-fdiagnostics-color=never");
-
         // log("rewritten args", "rewritten", rewritten);
 
         return rewritten;

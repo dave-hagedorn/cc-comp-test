@@ -121,14 +121,12 @@ private:
         if (run.result() == test_case_result::error
             || run.result() == test_case_result::fail) {
             p.OpenElement("system-out");
-            log("out", "output", run.compiler_output->compile_output.stdout);
             p.PushText((run.compiler_output->compile_output.stdout | join('\n'))
                            .c_str(),
                        true);
             p.CloseElement();
 
             p.OpenElement("system-err");
-            log("out", "error", run.compiler_output->compile_output.stderr);
             p.PushText((run.compiler_output->compile_output.stderr | join('\n'))
                            .c_str(),
                        true);
