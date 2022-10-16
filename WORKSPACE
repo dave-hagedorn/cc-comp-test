@@ -38,6 +38,13 @@ load("@llvm_toolchain//:toolchains.bzl", "llvm_register_toolchains")
 llvm_register_toolchains()
 # End common setup
 
+register_toolchains(
+    #"@llvm_toolchain//:cc-toolchain-x86_64-linux",
+    #"@local_config_cc//:toolchain"
+    #"@local_config_cc//:cc-compiler-k8"
+    #"@local_config_cc//:cc_wrapper"
+)
+
 github_archive(
     org = "ericniebler",
     repo = "range-v3",
@@ -71,4 +78,28 @@ github_archive(
     repo = "tinyxml2",
     sha256 = "",
     version = "e45d9d16d430a3f5d3eee9fe40d5e194e1e5e63a",
+)
+
+github_archive(
+    org = "aspect-build",
+    repo = "gcc-toolchain",
+    override_name = "aspect_gcc_toolchain",
+    version = "ac745d4685e2095cc4f057862800f3f0a473c201",
+    sha256 = "",
+)
+
+load("@aspect_gcc_toolchain//toolchain:defs.bzl", "gcc_toolchain", "gcc_register_toolchain")
+
+gcc_toolchain(
+    name = "gcc_toolchain",
+    binary_prefix = "bin",
+    repo_mapping = {},
+    target_arch = "x86_64",
+    toolchain_files_repository_name = "@aspect_gcc_toolchain",
+    sysroot = "sysroot"
+)
+
+gcc_register_toolchain(
+    name = "gcc_toolchain",
+    target_arch = "x86_64",
 )

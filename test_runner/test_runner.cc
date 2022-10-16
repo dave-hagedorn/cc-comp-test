@@ -306,10 +306,12 @@ int main(int argc, char **argv) {
         suites | ranges::views::transform([](auto &suite) {
             return suite.symbol;
         }),
-        "cases",
+        "cases' suites",
         cases | ranges::views::transform([](auto &tc) {
             return tc.test_suite_symbol();
         }));
+
+    //
 
     auto by_suite = dhagedorn::comp_test::impl::connect(suites, cases);
 
